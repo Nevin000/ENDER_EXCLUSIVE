@@ -1,44 +1,28 @@
-// services/emailService.ts
-
-import { Order } from "@/types/order";
-
-// 🔥 Temporarily disabled - Email service not configured yet
-export const sendOrderConfirmationEmail = async (
-  email: string,
-  orderId: string,
-  orderData: Order
-): Promise<boolean> => {
-  console.log("📧 Email would be sent to:", email);
-  console.log("📧 Order ID:", orderId);
-  console.log("📧 Order Data:", orderData);
-  
-  // 🔥 Return true without sending email
-  return true;
-  
-  // 🔥 Uncomment when email service is configured:
-  /*
+/**
+ * Sends order confirmation emails (customer + admin) via the /api/send-order-email route.
+ * Fires-and-forgets — does NOT block the order placement flow.
+ */
+export async function sendOrderEmails(order: any): Promise<void> {
   try {
-    const response = await fetch("/api/send-email", {
+    const res = await fetch("/api/send-order-email", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        to: email,
-        subject: `Order Confirmation - #${orderId.slice(0, 8).toUpperCase()}`,
-        orderId: orderId,
-        orderData: orderData,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order }),
     });
 
-    if (!response.ok) {
-      throw new Error("Failed to send email");
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.warn("[Email] Failed to send order emails:", err);
     }
-
-    return true;
-  } catch (error) {
-    console.error("❌ Error sending email:", error);
-    return false;
+  } catch (err) {
+    // Non-critical — order is already placed; just log
+    console.warn("[Email] Error calling email API:", err);
   }
-  */
-};
+}
+
+// ── Legacy stub (kept for backward compatibility) ──
+export const sendOrderConfirmationEmail = async (
+  _email: string,
+  _orderId: string,
+  _orderData: any
+): Promise<boolean> => true;

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -19,6 +20,7 @@ import { SiVisa, SiMastercard, SiDiscover, SiAmericanexpress } from "react-icons
 import { CartItem } from "@/types/cart";
 
 export default function CartPage() {
+    const router = useRouter();
     const {
         cart,
         loading,
@@ -581,21 +583,21 @@ export default function CartPage() {
                                                     </div>
                                                 ))}
                                                 <div className="flex justify-between text-sm font-bold pt-1.5 border-t border-gray-200 text-gray-800">
-                                                    <span>Total Delivery</span>
+                                                                    <span>Total Delivery</span>
                                                     <span>Rs. {totalDeliveryCharge.toLocaleString()}</span>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* 🔥 RED CHECKOUT BUTTON - PERFECTLY ALIGNED */}
+                                    {/* 🔥 CHECKOUT BUTTON */}
                                     <div className="pt-2">
-                                        <Link
-                                            href={hasSelected ? "/checkout" : "#"}
-                                            onClick={(e) => {
-                                                if (!hasSelected) {
-                                                    e.preventDefault();
-                                                }
+                                        <button
+                                            disabled={!hasSelected}
+                                            onClick={() => {
+                                                if (!hasSelected) return;
+                                                const ids = Array.from(selectedItems).join(",");
+                                                router.push(`/checkout?items=${ids}`);
                                             }}
                                             className={`
                         w-full py-4 rounded-xl text-center font-bold text-white text-lg 
@@ -610,7 +612,7 @@ export default function CartPage() {
                                             <span className="bg-white/20 px-3 py-0.5 rounded-full text-sm font-semibold">
                                                 {selectedQuantity} {selectedQuantity === 1 ? 'item' : 'items'}
                                             </span>
-                                        </Link>
+                                        </button>
                                     </div>
 
                                     {/* Payment Methods */}

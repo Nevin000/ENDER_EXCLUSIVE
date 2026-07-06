@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
@@ -34,6 +34,7 @@ import {
 import { createOrder } from "@/services/orderService";
 import { CartItem } from "@/types/cart";
 import { uploadImageToCloudinary } from "@/services/cloudinaryService";
+import { sendOrderEmails } from "@/services/emailService";
 
 // 🔥 Bank Details
 const BANK_DETAILS = {
@@ -65,8 +66,17 @@ const generateOrderNumber = () => {
 
 export default function CheckoutPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user } = useAuth();
     const { cart, clearCart } = useCart();
+
+    // 🔥 Only checkout the items selected in cart page
+    const checkoutItems = useMemo(() => {
+        const selectedIds = searchParams.get("items");
+        if (!selectedIds) return cart; // fallback: full cart
+        const ids = new Set(selectedIds.split(","));
+        return cart.filter((item) => ids.has(item.id));
+    }, [cart, searchParams]);
 
     const [currentStep, setCurrentStep] = useState(1);
     const [loading, setLoading] = useState(false);
@@ -93,15 +103,15 @@ export default function CheckoutPage() {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 🔥 Calculate totals
-    const subtotal = cart.reduce((total, item) => {
+    // 🔥 Calculate totals — only from selected items
+    const subtotal = checkoutItems.reduce((total, item) => {
         const price = item.isOnSale ? item.salePrice ?? item.price : item.price;
         return total + price * item.quantity;
     }, 0);
 
     const deliveryCharge = (() => {
         const uniqueProducts = new Map<string, number>();
-        cart.forEach((item) => {
+        checkoutItems.forEach((item) => {
             const charge = item.deliveryCharge ?? 0;
             if (!uniqueProducts.has(item.productId)) {
                 uniqueProducts.set(item.productId, charge);
@@ -254,7 +264,7 @@ export default function CheckoutPage() {
                 userId: user.uid,
                 userEmail: user.email || "",
                 customerName: fullName,
-                items: cart,
+                items: checkoutItems,
                 subtotal,
                 deliveryCharge,
                 total,
@@ -289,15 +299,13 @@ export default function CheckoutPage() {
 
             const orderId = await createOrder(orderData);
 
-            console.log("✅ Order created with ID:", orderId);
+            // 🔥 Send confirmation emails (non-blocking — runs in background)
+            sendOrderEmails({ ...orderData, id: orderId });
 
             // 🔥 Clear cart
             clearCart();
 
             // 🔥 Redirect to success page
-            console.log("🔀 Redirecting to:", `/checkout-success/${orderId}`);
-
-            // 🔥 Use window.location for more reliable navigation
             window.location.href = `/checkout-success/${orderId}`;
 
         } catch (error: any) {
@@ -897,7 +905,7 @@ export default function CheckoutPage() {
                                         <div className="bg-gray-50 rounded-xl p-4">
                                             <h3 className="font-semibold text-gray-800 mb-2">Order Items</h3>
                                             <div className="space-y-1.5">
-                                                {cart.map((item) => {
+                                                {checkoutItems.map((item) => {
                                                     const price = item.isOnSale ? item.salePrice ?? item.price : item.price;
                                                     return (
                                                         <div key={item.id} className="flex justify-between text-sm">
@@ -984,7 +992,7 @@ export default function CheckoutPage() {
 
                             {/* Items */}
                             <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
-                                {cart.map((item) => {
+                                {checkoutItems.map((item) => {
                                     const price = item.isOnSale ? item.salePrice ?? item.price : item.price;
                                     return (
                                         <div key={item.id} className="flex justify-between text-sm">
