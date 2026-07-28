@@ -1,183 +1,141 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { FiArrowRight } from "react-icons/fi";
+import { Sparkles, Layers, ShieldCheck } from "lucide-react";
 
 export default function FeaturedLooks() {
   const looks = [
     {
       title: "Fighters Collection",
       subtitle:
-        "Premium fightwear engineered for champions who demand performance and style.",
-      tag: "Elite Performance",
+        "Pro combat fightwear engineered for champions. Tested by elite fighters in boxing, MMA, and Muay Thai.",
+      tag: "Pro Fighter Edition",
+      badge: "★ Official Fightwear",
+      link: "/featured-looks/fighters",
+      image: "/images/featured-looks/fighters_collection_card.png",
+      icon: ShieldCheck,
+      badgeStyle: "bg-amber-400 text-black font-black",
     },
     {
-      title: "Look Book",
+      title: "Seasonal Lookbook",
       subtitle:
-        "Explore our seasonal editorials, curated outfits and modern fashion inspiration.",
-      tag: "Fashion Editorial",
+        "Explore our high-end fashion editorials, curated street styles, heavyweight hoodies, and modern athletic silhouettes.",
+      tag: "2026 Editorial",
+      badge: "★ Exclusive Look Book",
+      link: "/featured-looks/lookbook",
+      image: "/lookbook/look_book_banner.avif",
+      icon: Layers,
+      badgeStyle: "bg-black dark:bg-white text-white dark:text-black font-black",
     },
   ];
 
   return (
-    <section className="max-w-[1700px] mx-auto px-8 lg:px-12 py-32">
-      {/* Header */}
-      <div className="text-center mb-20">
-        <p className="uppercase tracking-[0.5em] text-gray-500 text-sm mb-4">
-          Ender Exclusive
-        </p>
-
-        <h2 className="text-5xl md:text-6xl font-black mb-6">Featured Looks</h2>
-
-        <p className="text-gray-600 text-lg max-w-3xl mx-auto">
-          Discover exclusive collections, editorial looks and premium
-          inspirations curated by Ender Exclusive.
-        </p>
-      </div>
-
-      {/* Cards */}
-      <div className="grid lg:grid-cols-2 gap-10">
-        {looks.map((look, index) => (
+    <section className="bg-white dark:bg-[#070707] text-zinc-900 dark:text-white py-16 sm:py-20 lg:py-24 border-b border-zinc-200 dark:border-zinc-800/80 transition-colors duration-300">
+      {/* Container matching Navbar margin & padding */}
+      <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Section Header (Centered) */}
+        <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
           <motion.div
-            key={look.title}
-            initial={{ opacity: 0, y: 60 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{
-              duration: 0.8,
-              delay: index * 0.15,
-            }}
-            className="group"
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-[0.3em] mb-4"
           >
-            <div
-              className="
-                relative
-                h-[650px]
-                overflow-hidden
-                rounded-[40px]
-                cursor-pointer
-                shadow-xl
-              "
-            >
-              {/* Background */}
-              <div
-                className="
-                  absolute
-                  inset-0
-                  bg-gradient-to-br
-                  from-black
-                  via-gray-900
-                  to-gray-700
-                  group-hover:scale-110
-                  transition-all
-                  duration-1000
-                "
-              />
-
-              {/* Overlay */}
-              <div
-                className="
-                  absolute
-                  inset-0
-                  bg-black/25
-                  group-hover:bg-black/45
-                  transition-all
-                  duration-500
-                "
-              />
-
-              {/* Top Badge */}
-              <div
-                className="
-                  absolute
-                  top-8
-                  left-8
-                  z-20
-                  bg-white/10
-                  backdrop-blur-md
-                  border
-                  border-white/20
-                  text-white
-                  px-5
-                  py-2
-                  rounded-full
-                  text-sm
-                "
-              >
-                {look.tag}
-              </div>
-
-              {/* Content */}
-              <div
-                className="
-                  relative
-                  z-10
-                  h-full
-                  flex
-                  flex-col
-                  justify-end
-                  p-12
-                "
-              >
-                <p className="uppercase tracking-[0.4em] text-gray-300 text-sm mb-4">
-                  Ender Exclusive
-                </p>
-
-                <h3 className="text-5xl xl:text-6xl font-black text-white mb-5 leading-tight">
-                  {look.title}
-                </h3>
-
-                <p className="text-gray-300 text-lg max-w-lg mb-10 leading-relaxed">
-                  {look.subtitle}
-                </p>
-
-                <button
-                  className="
-                    w-fit
-                    bg-white
-                    text-black
-                    px-8
-                    py-4
-                    rounded-full
-                    flex
-                    items-center
-                    gap-3
-                    font-semibold
-                    hover:bg-black
-                    hover:text-white
-                    transition-all
-                    duration-300
-                  "
-                >
-                  Explore Collection
-                  <FiArrowRight
-                    className="
-                      transition-transform
-                      duration-300
-                      group-hover:translate-x-2
-                    "
-                  />
-                </button>
-              </div>
-            </div>
+            <Sparkles className="w-3.5 h-3.5 fill-amber-500" />
+            <span>EDITORIAL & AMBASSADORS</span>
           </motion.div>
-        ))}
-      </div>
 
-      {/* Bottom CTA */}
-      <div className="text-center mt-20">
-        <p className="uppercase tracking-[0.4em] text-gray-500 text-sm mb-4">
-          Explore More
-        </p>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight uppercase"
+          >
+            Featured <span className="text-amber-500">Looks</span>
+          </motion.h2>
 
-        <h3 className="text-4xl font-bold mb-6">
-          Designed For Every Lifestyle
-        </h3>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mt-3 text-zinc-600 dark:text-zinc-400 text-base sm:text-lg font-medium"
+          >
+            Discover exclusive fighter collections and editorial lookbooks curated for champions.
+          </motion.p>
+        </div>
 
-        <p className="text-gray-600 max-w-2xl mx-auto">
-          Whether you're training, competing or expressing your personal style,
-          Ender Exclusive has a collection for you.
-        </p>
+        {/* Lookbook Cards Grid */}
+        <div className="grid lg:grid-cols-2 gap-8">
+          {looks.map((look, index) => {
+            const IconComponent = look.icon;
+            return (
+              <motion.div
+                key={look.title}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, delay: index * 0.15 }}
+                className="group relative"
+              >
+                <Link href={look.link} className="block">
+                  <div className="relative h-[560px] sm:h-[620px] rounded-3xl overflow-hidden border border-zinc-200 dark:border-zinc-800 group-hover:border-amber-500/50 shadow-xl group-hover:shadow-2xl transition-all duration-500 bg-black">
+                    {/* Card Background Image */}
+                    <img
+                      src={look.image}
+                      alt={look.title}
+                      className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 filter brightness-90 contrast-105"
+                    />
+
+                    {/* Gradient Overlays for Text Legibility */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500" />
+
+                    {/* Top Badges */}
+                    <div className="absolute top-6 left-6 right-6 flex items-center justify-between z-10">
+                      <span className={`px-4 py-1.5 rounded-full text-xs uppercase tracking-widest shadow-md ${look.badgeStyle}`}>
+                        {look.badge}
+                      </span>
+                      <span className="px-3.5 py-1.5 rounded-full text-xs font-mono font-bold bg-black/70 backdrop-blur-md text-zinc-200 border border-white/20">
+                        {look.tag}
+                      </span>
+                    </div>
+
+                    {/* Bottom Content Container */}
+                    <div className="absolute bottom-0 inset-x-0 p-8 sm:p-12 z-10 flex flex-col justify-end text-white">
+                      <div className="flex items-center gap-3 mb-3 text-amber-400">
+                        <IconComponent className="w-5 h-5" />
+                        <span className="text-xs uppercase font-extrabold tracking-widest text-zinc-300">
+                          Ender Exclusive Editorial
+                        </span>
+                      </div>
+
+                      <h3 className="text-4xl sm:text-5xl font-black text-white group-hover:text-amber-400 transition-colors duration-300">
+                        {look.title}
+                      </h3>
+
+                      <p className="mt-3 text-zinc-300 text-base sm:text-lg font-medium leading-relaxed max-w-xl">
+                        {look.subtitle}
+                      </p>
+
+                      <div className="mt-8">
+                        <span className="inline-flex items-center gap-3 px-8 py-3.5 bg-white text-black font-black text-sm uppercase tracking-wider rounded-full group-hover:bg-amber-400 group-hover:text-black transition-all duration-300 shadow-xl">
+                          <span>Explore Collection</span>
+                          <FiArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

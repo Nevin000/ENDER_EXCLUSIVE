@@ -1,3 +1,5 @@
+"use client";
+
 import { auth } from "@/firebase/config";
 
 export default function TestPage() {
@@ -9,3 +11,4 @@ export default function TestPage() {
     </div>
   );
 }
+

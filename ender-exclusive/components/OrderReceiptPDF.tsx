@@ -230,8 +230,7 @@ export const OrderReceiptPDF = ({ order, orderId }: OrderReceiptPDFProps) => {
         switch (status) {
             case "pending": return "Order Received";
             case "processing": return "Processing";
-            case "shipped": return "Shipped";
-            case "delivered": return "Delivered";
+            case "delivered": return "Hand Over Delivery";
             case "cancelled": return "Cancelled";
             default: return status || "Order Received";
         }
@@ -251,9 +250,9 @@ export const OrderReceiptPDF = ({ order, orderId }: OrderReceiptPDFProps) => {
                         <Text style={styles.logoSub}>EXCLUSIVE</Text>
                     </View>
                     <View style={styles.orderSection}>
-                        <Text style={styles.orderNumber}>#{orderId.slice(0, 8).toUpperCase()}</Text>
+                        <Text style={styles.orderNumber}>#{order.orderNo || orderId.slice(0, 8).toUpperCase()}</Text>
                         <Text style={styles.orderDate}>
-                            {new Date(order.orderDate).toLocaleDateString("en-US", {
+                            {new Date(order.orderDate || order.createdAt || Date.now()).toLocaleDateString("en-US", {
                                 year: "numeric",
                                 month: "long",
                                 day: "numeric",
@@ -265,6 +264,11 @@ export const OrderReceiptPDF = ({ order, orderId }: OrderReceiptPDFProps) => {
                 {/* Status */}
                 <View style={styles.statusContainer}>
                     <Text style={styles.statusText}>✓ Status: {getStatusText(order.orderStatus)}</Text>
+                    {order.trackingNumber && (
+                        <Text style={[styles.statusText, { marginTop: 4, color: "#1f2937", fontSize: 9 }]}>
+                            Courier: {order.deliveryCompany || "Courier Service"} | Tracking #: {order.trackingNumber}
+                        </Text>
+                    )}
                 </View>
 
                 {/* Order Items - Table Style */}
@@ -273,7 +277,7 @@ export const OrderReceiptPDF = ({ order, orderId }: OrderReceiptPDFProps) => {
 
                     {/* Table Header */}
                     <View style={styles.tableHeader}>
-                        <Text style={[styles.tableHeaderText, { flex: 2 }]}>Item</Text>
+                        <Text style={[styles.tableHeaderText, { flex: 2 }]}>Item Details</Text>
                         <Text style={[styles.tableHeaderText, { flex: 0.5, textAlign: "center" }]}>Qty</Text>
                         <Text style={[styles.tableHeaderText, { flex: 1, textAlign: "right" }]}>Price</Text>
                     </View>
@@ -282,9 +286,12 @@ export const OrderReceiptPDF = ({ order, orderId }: OrderReceiptPDFProps) => {
                     {order.items?.map((item: any, idx: number) => {
                         const price = item.isOnSale ? item.salePrice ?? item.price : item.price;
                         const isLast = idx === order.items.length - 1;
+                        const specs = [item.color, item.size].filter(Boolean).join(" / ");
                         return (
                             <View key={idx} style={isLast ? styles.tableRowLast : styles.tableRow}>
-                                <Text style={styles.itemName}>{item.name}</Text>
+                                <Text style={styles.itemName}>
+                                    {item.name}{specs ? ` (${specs})` : ""}
+                                </Text>
                                 <Text style={styles.itemQty}>×{item.quantity}</Text>
                                 <Text style={styles.itemPrice}>Rs. {(price * item.quantity).toLocaleString()}</Text>
                             </View>
@@ -314,13 +321,16 @@ export const OrderReceiptPDF = ({ order, orderId }: OrderReceiptPDFProps) => {
                         <View style={styles.gridItem}>
                             <Text style={styles.sectionTitle}>Shipping Address</Text>
                             <Text style={styles.addressText}>
-                                {order.shippingAddress?.fullName || order.shippingAddress?.firstName}
+                                {order.shippingAddress?.fullName || `${order.shippingAddress?.firstName || ""} ${order.shippingAddress?.lastName || ""}`.trim()}
                             </Text>
                             <Text style={styles.addressText}>{order.shippingAddress?.address}</Text>
                             <Text style={styles.addressText}>
-                                {order.shippingAddress?.city}, {order.shippingAddress?.district}
+                                {order.shippingAddress?.city}, {order.shippingAddress?.district} {order.shippingAddress?.postalCode || ""}
                             </Text>
                             <Text style={styles.addressText}>Phone: {order.shippingAddress?.phone}</Text>
+                            {order.shippingAddress?.email && (
+                                <Text style={styles.addressText}>Email: {order.shippingAddress.email}</Text>
+                            )}
                         </View>
                         <View style={styles.gridItem}>
                             <Text style={styles.sectionTitle}>Payment Method</Text>

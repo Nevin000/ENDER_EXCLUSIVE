@@ -1,191 +1,196 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { FaRegHeart } from "react-icons/fa";
-import { FiShoppingBag, FiArrowRight } from "react-icons/fi";
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { FaRegHeart, FaHeart, FaStar } from "react-icons/fa";
+import { FiArrowRight } from "react-icons/fi";
+import { Zap } from "lucide-react";
+
+import { getProducts } from "@/services/productService";
+import { Product } from "@/types/product";
+import ProductCard from "@/components/ProductCard";
+
+// Fallback real items if Firestore hasn't been populated yet
+const MOCK_STORE_PRODUCTS: Product[] = [
+  {
+    id: "ender-hoodie-01",
+    name: "Ender Heavyweight Street Hoodie",
+    category: "Streetwear",
+    price: 18000,
+    salePrice: 14500,
+    isOnSale: true,
+    discountPercentage: 20,
+    description: "Ultra-heavyweight 480GSM fleece hoodie with luxury metallic logo embroidery.",
+    stock: 25,
+    images: [
+      "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=1000&auto=format&fit=crop",
+    ],
+    colorImages: [],
+    colorVariants: [],
+    colors: ["Black", "Charcoal"],
+    sizes: [{ size: "L", stock: 10 }],
+    status: "in_stock",
+    deliveryType: "free",
+    deliveryCharge: 0,
+  },
+  {
+    id: "ender-rashguard-02",
+    name: "Pro Combat Compression Rashguard",
+    category: "Fightwear",
+    price: 13500,
+    salePrice: 11200,
+    isOnSale: true,
+    discountPercentage: 17,
+    description: "Professional 4-way stretch compression rashguard for MMA & BJJ training.",
+    stock: 30,
+    images: [
+      "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=1000&auto=format&fit=crop",
+    ],
+    colorImages: [],
+    colorVariants: [],
+    colors: ["Black/Gold"],
+    sizes: [{ size: "M", stock: 15 }],
+    status: "in_stock",
+    deliveryType: "free",
+    deliveryCharge: 0,
+  },
+  {
+    id: "ender-shorts-03",
+    name: "Championship MMA Fight Shorts",
+    category: "Fightwear",
+    price: 9800,
+    salePrice: 9800,
+    isOnSale: false,
+    discountPercentage: 0,
+    description: "Reinforced side-slit fight shorts engineered for maximum mobility and kicking power.",
+    stock: 40,
+    images: [
+      "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?q=80&w=1000&auto=format&fit=crop",
+    ],
+    colorImages: [],
+    colorVariants: [],
+    colors: ["Matte Black"],
+    sizes: [{ size: "L", stock: 20 }],
+    status: "in_stock",
+    deliveryType: "free",
+    deliveryCharge: 0,
+  },
+  {
+    id: "ender-joggers-04",
+    name: "Signature Athletic Tech Joggers",
+    category: "Sportswear",
+    price: 15000,
+    salePrice: 12800,
+    isOnSale: true,
+    discountPercentage: 15,
+    description: "Tapered performance athletic joggers with zippered waterproof pockets.",
+    stock: 20,
+    images: [
+      "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=1000&auto=format&fit=crop",
+    ],
+    colorImages: [],
+    colorVariants: [],
+    colors: ["Black", "Grey"],
+    sizes: [{ size: "M", stock: 10 }],
+    status: "in_stock",
+    deliveryType: "free",
+    deliveryCharge: 0,
+  },
+];
 
 export default function NewArrivals() {
-  const products = [
-    {
-      name: "Streetwear Hoodie",
-      price: "$45",
-      category: "Streetwear",
-    },
-    {
-      name: "Fightwear Tee",
-      price: "$35",
-      category: "Fightwear",
-    },
-    {
-      name: "Sports Shorts",
-      price: "$30",
-      category: "Sportswear",
-    },
-    {
-      name: "Training Jersey",
-      price: "$40",
-      category: "Performance",
-    },
-  ];
+  const [products, setProducts] = useState<Product[]>(MOCK_STORE_PRODUCTS);
+  const [loading, setLoading] = useState(true);
+  const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    async function fetchStoreProducts() {
+      try {
+        const liveProducts = await getProducts();
+        if (liveProducts && liveProducts.length > 0) {
+          setProducts(liveProducts);
+        } else {
+          setProducts(MOCK_STORE_PRODUCTS);
+        }
+      } catch (err) {
+        console.error("Error fetching store products:", err);
+        setProducts(MOCK_STORE_PRODUCTS);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStoreProducts();
+  }, []);
+
+  const toggleWishlist = (id: string) => {
+    setWishlist((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   return (
-    <section className="max-w-[1700px] mx-auto px-8 lg:px-12 py-32">
-      {/* Header */}
-      <div className="text-center mb-20">
-        <p className="uppercase tracking-[0.5em] text-gray-500 text-sm mb-4">
-          Ender Exclusive
-        </p>
-
-        <h2 className="text-5xl md:text-6xl font-black mb-6">New Arrivals</h2>
-
-        <p className="text-gray-600 text-lg max-w-3xl mx-auto">
-          Discover the latest additions to our premium collections, crafted for
-          performance, comfort and style.
-        </p>
-      </div>
-
-      {/* Products */}
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-8">
-        {products.map((product, index) => (
+    <section className="bg-white dark:bg-[#070707] text-zinc-900 dark:text-white py-16 sm:py-20 lg:py-28 border-b border-zinc-200 dark:border-zinc-800/80 transition-colors duration-300">
+      {/* Container matching Navbar & Categories margin & padding */}
+      <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Section Header (Centered) */}
+        <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
           <motion.div
-            key={product.name}
-            initial={{ opacity: 0, y: 60 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{
-              duration: 0.7,
-              delay: index * 0.15,
-            }}
-            className="group"
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-[0.3em] mb-4"
           >
-            <div
-              className="
-                bg-white
-                rounded-[32px]
-                overflow-hidden
-                shadow-lg
-                hover:shadow-2xl
-                transition-all
-                duration-500
-              "
-            >
-              {/* Image */}
-              <div className="relative overflow-hidden">
-                <div
-                  className="
-                    h-[420px]
-                    bg-gradient-to-br
-                    from-black
-                    via-gray-900
-                    to-gray-700
-                    transition-all
-                    duration-700
-                    group-hover:scale-105
-                  "
-                />
-
-                {/* Badge */}
-                <div
-                  className="
-                    absolute
-                    top-5
-                    left-5
-                    bg-white
-                    px-4
-                    py-2
-                    rounded-full
-                    text-sm
-                    font-medium
-                  "
-                >
-                  NEW
-                </div>
-
-                {/* Wishlist */}
-                <button
-                  className="
-                    absolute
-                    top-5
-                    right-5
-                    w-12
-                    h-12
-                    rounded-full
-                    bg-white
-                    flex
-                    items-center
-                    justify-center
-                    shadow-lg
-                    hover:bg-black
-                    hover:text-white
-                    transition-all
-                  "
-                >
-                  <FaRegHeart />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="p-7">
-                <p className="text-sm text-gray-500 mb-2 uppercase tracking-wider">
-                  {product.category}
-                </p>
-
-                <h3 className="text-2xl font-bold mb-3">{product.name}</h3>
-
-                <div className="flex items-center justify-between mb-6">
-                  <span className="text-2xl font-black">{product.price}</span>
-
-                  <span className="text-green-600 text-sm font-semibold">
-                    In Stock
-                  </span>
-                </div>
-
-                <button
-                  className="
-                    w-full
-                    bg-black
-                    text-white
-                    py-4
-                    rounded-full
-                    flex
-                    items-center
-                    justify-center
-                    gap-3
-                    font-semibold
-                    hover:bg-gray-800
-                    transition-all
-                  "
-                >
-                  <FiShoppingBag />
-                  Add To Cart
-                </button>
-              </div>
-            </div>
+            <Zap className="w-3.5 h-3.5 fill-amber-500" />
+            <span>FRESH DROP 2026</span>
           </motion.div>
-        ))}
-      </div>
 
-      {/* View All Button */}
-      <div className="flex justify-center mt-16">
-        <button
-          className="
-            border-2
-            border-black
-            px-8
-            py-4
-            rounded-full
-            flex
-            items-center
-            gap-3
-            font-semibold
-            hover:bg-black
-            hover:text-white
-            transition-all
-          "
-        >
-          View All Products
-          <FiArrowRight />
-        </button>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight uppercase"
+          >
+            New <span className="text-amber-500">Arrivals</span>
+          </motion.h2>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mt-3 text-zinc-600 dark:text-zinc-400 text-base sm:text-lg max-w-xl mx-auto font-medium"
+          >
+            Explore our latest collection drops and high-grade apparel built for champions.
+          </motion.p>
+
+          {/* View Full Store Button (Centered) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mt-6"
+          >
+            <Link
+              href="/shop"
+              className="inline-flex items-center gap-3 px-8 py-3.5 bg-black dark:bg-white text-white dark:text-black font-extrabold rounded-full hover:bg-amber-400 hover:text-black dark:hover:bg-amber-400 dark:hover:text-black hover:scale-105 transition-all duration-300 shadow-md text-sm"
+            >
+              <span>Explore All Shop Items</span>
+              <FiArrowRight className="w-4 h-4" />
+            </Link>
+          </motion.div>
+        </div>
+
+        {/* Product Grid */}
+        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-8">
+          <AnimatePresence mode="popLayout">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </AnimatePresence>
+        </div>
       </div>
     </section>
   );

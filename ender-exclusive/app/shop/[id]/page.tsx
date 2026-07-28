@@ -1,30 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-
 import { getProductById } from "@/services/productService";
 import { Product } from "@/types/product";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-
+import { useWishlist } from "@/context/WishlistContext";
 import {
-  HiOutlineHeart,
-  HiOutlineShoppingCart,
-  HiOutlineTruck,
-  HiOutlineShieldCheck,
-  HiOutlineChevronLeft,
-  HiOutlineChevronRight,
-  HiCheck,
-  HiOutlineMinus,
-  HiOutlinePlus,
-} from "react-icons/hi2";
+  Flame,
+  ShieldCheck,
+  Truck,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Heart,
+  ArrowLeft,
+  Share2,
+  Sparkles,
+  RotateCcw,
+  Layers,
+  Award,
+} from "lucide-react";
 
-import { FaFacebook, FaTwitter, FaInstagram } from "react-icons/fa";
-
-export default function ProductPage() {
+export default function ShopProductPage() {
   const params = useParams();
   const productId = params.id as string;
 
@@ -36,10 +41,10 @@ export default function ProductPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [availableStock, setAvailableStock] = useState(0);
   const [addingToCart, setAddingToCart] = useState(false);
-  const [wishlist, setWishlist] = useState(false);
 
   const { user } = useAuth();
   const { addItem } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -56,7 +61,7 @@ export default function ProductPage() {
         setQuantity(1);
         setActiveImage(0);
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching product details:", error);
       } finally {
         setLoading(false);
       }
@@ -99,82 +104,104 @@ export default function ProductPage() {
 
   const getSizeStock = (size: string) => {
     if (!product?.sizes) return 0;
-    const sizes = product.sizes.filter((s) => s.size === size);
-    return sizes.reduce((sum, s) => sum + s.stock, 0);
+    const matches = product.sizes.filter((s) => s.size === size);
+    return matches.reduce((acc, curr) => acc + curr.stock, 0);
   };
 
   const getColorStock = (color: string) => {
     if (!product?.sizes) return 0;
-    const colorSizes = product.sizes.filter((s) => (s as any).color === color);
-    return colorSizes.reduce((sum, s) => sum + s.stock, 0);
+    const matches = product.sizes.filter((s) => (s as any).color === color);
+    return matches.reduce((acc, curr) => acc + curr.stock, 0);
   };
 
   const isSizeAvailableForSelectedColor = (color: string, size: string) => {
     if (!product?.sizes) return false;
-    return product.sizes.some(
-      (s) => (s as any).color === color && s.size === size && s.stock > 0
+    const match = product.sizes.find(
+      (s) => (s as any).color === color && s.size === size
     );
+    return match ? match.stock > 0 : false;
   };
 
-  const getSpecificStock = (color: string, size: string) => {
-    if (!product?.sizes) return 0;
-    const matched = product.sizes.find(
-      (s) => s.size === size && (s as any).color === color
-    );
-    return matched ? matched.stock : 0;
-  };
+  // Derive active gallery images for selected color or general product photos
+  const galleryImages = useMemo(() => {
+    if (!product) return [];
+
+    if (selectedColor) {
+      // 1. Check colorVariants for array of images for this color
+      const variantMatch = product.colorVariants?.find(
+        (v) => v.color?.toLowerCase() === selectedColor.toLowerCase()
+      );
+      if (variantMatch) {
+        if (variantMatch.images && variantMatch.images.length > 0) {
+          return variantMatch.images;
+        }
+        if (variantMatch.imageUrl) {
+          return [variantMatch.imageUrl];
+        }
+      }
+
+      // 2. Check colorImages array
+      if (product.colorImages && product.colorImages.length > 0) {
+        const colorFiltered = product.colorImages
+          .filter((ci) => ci.color?.toLowerCase() === selectedColor.toLowerCase())
+          .map((ci) => ci.url);
+        if (colorFiltered.length > 0) {
+          return colorFiltered;
+        }
+      }
+    }
+
+    return product.images && product.images.length > 0
+      ? product.images
+      : ["/lookbook/look_book_banner.avif"];
+  }, [product, selectedColor]);
 
   const handleColorSelect = (color: string) => {
     setSelectedColor(color);
+    setActiveImage(0);
     if (selectedSize && !isSizeAvailableForSelectedColor(color, selectedSize)) {
       setSelectedSize("");
     }
-    setQuantity(1);
   };
 
   const handleSizeSelect = (size: string) => {
     setSelectedSize(size);
-    setQuantity(1);
   };
 
   const handleAddToCart = async () => {
+    if (!product) return;
+
+    if (!selectedColor && product.colors && product.colors.length > 0) {
+      alert("Please select a color first.");
+      return;
+    }
+
+    if (!selectedSize && getUniqueSizes().length > 0) {
+      alert("Please select a size first.");
+      return;
+    }
+
+    if (quantity > availableStock) {
+      alert("Selected quantity exceeds available stock!");
+      return;
+    }
+
     if (!user) {
-      alert("Please login first.");
-      return;
-    }
-
-    if (!product) {
-      alert("Product not found.");
-      return;
-    }
-
-    if (!selectedColor) {
-      alert("Please select a color.");
-      return;
-    }
-
-    if (!selectedSize) {
-      alert("Please select a size.");
-      return;
-    }
-
-    if (availableStock <= 0) {
-      alert("Out of Stock");
+      alert("Please log in to add items to your cart.");
       return;
     }
 
     setAddingToCart(true);
 
     try {
-      // 🔥 Add userId to cart item
       await addItem({
         userId: user.uid,
         productId: product.id,
         name: product.name,
-        image: product.images?.[0] || "/placeholder.png",
-        color: selectedColor,
-        size: selectedSize,
-        quantity,
+        image: galleryImages[activeImage] || galleryImages[0] || product.images?.[0] || "/lookbook/look_book_banner.avif",
+        color: selectedColor || product.colors?.[0] || "Standard",
+        size: selectedSize || "M",
+        quantity: quantity,
         price: product.price,
         salePrice: product.salePrice,
         isOnSale: product.isOnSale,
@@ -182,48 +209,35 @@ export default function ProductPage() {
         deliveryCharge: product.deliveryCharge || 0,
       });
 
-      alert("Added to cart successfully!");
-
-      // Reset selection after adding
-      setSelectedColor("");
-      setSelectedSize("");
-      setQuantity(1);
-
-    } catch (error: any) {
-      console.error("Error adding to cart:", error);
-      alert(error.message || "Failed to add to cart. Please try again.");
+      alert(`${product.name} added to your shopping cart!`);
+    } catch (error) {
+      console.error("Failed to add to cart:", error);
+      alert("Something went wrong while adding to cart.");
     } finally {
       setAddingToCart(false);
     }
   };
 
   const nextImage = () => {
-    if (product?.images && product.images.length > 0) {
-      setActiveImage((prev) => (prev + 1) % product.images.length);
+    if (galleryImages.length > 0) {
+      setActiveImage((prev) => (prev + 1) % galleryImages.length);
     }
   };
 
   const prevImage = () => {
-    if (product?.images && product.images.length > 0) {
-      setActiveImage((prev) => (prev - 1 + product.images.length) % product.images.length);
+    if (galleryImages.length > 0) {
+      setActiveImage((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
     }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") prevImage();
-      else if (e.key === "ArrowRight") nextImage();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [product]);
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading product details...</p>
+      <div className="min-h-screen bg-white dark:bg-[#070707] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-3 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+            Loading Product Details...
+          </p>
         </div>
       </div>
     );
@@ -231,180 +245,244 @@ export default function ProductPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4">
-        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-          <HiOutlineShoppingCart className="text-5xl text-gray-400" />
+      <div className="min-h-screen bg-white dark:bg-[#070707] flex flex-col items-center justify-center text-center px-4 space-y-6">
+        <div className="p-5 rounded-full bg-amber-500/10 text-amber-500">
+          <ShoppingBag className="w-12 h-12" />
         </div>
-        <h1 className="text-3xl font-bold text-gray-800">Product Not Found</h1>
-        <p className="text-gray-500 mb-6 text-center">
-          The product you're looking for doesn't exist or has been removed.
-        </p>
+        <div className="space-y-2 max-w-md">
+          <h1 className="text-3xl font-black uppercase tracking-tight">Product Not Found</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+            The item you requested does not exist or has been updated in our catalog.
+          </p>
+        </div>
         <Link
           href="/shop"
-          className="bg-black text-white px-8 py-3 rounded-full hover:bg-gray-800 transition-all inline-flex items-center gap-2 hover:scale-105"
+          className="inline-flex items-center gap-2 px-8 py-3.5 bg-amber-400 text-black font-black text-xs uppercase tracking-widest rounded-full hover:bg-amber-300 transition shadow-xl hover:scale-105"
         >
-          Back To Shop
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back To Shop</span>
         </Link>
       </div>
     );
   }
 
-  const hasMultipleImages = product.images && product.images.length > 1;
+  const hasMultipleImages = galleryImages.length > 1;
   const isOutOfStock = availableStock === 0;
-  const canAddToCart = !isOutOfStock && selectedColor && selectedSize && !addingToCart;
+  const unitPrice = product.salePrice || product.price || 0;
+  const totalPrice = unitPrice * quantity;
+  const discountPercent =
+    product.price && product.salePrice && product.price > product.salePrice
+      ? Math.round(((product.price - product.salePrice) / product.price) * 100)
+      : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Link href="/" className="hover:text-black transition">Home</Link>
-              <span>/</span>
-              <Link href="/shop" className="hover:text-black transition">Shop</Link>
-              <span>/</span>
-              <span className="text-black font-medium line-clamp-1">{product.name}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setWishlist(!wishlist)}
-                className="p-2 hover:bg-gray-100 rounded-full transition"
-              >
-                <HiOutlineHeart className={`text-xl ${wishlist ? 'text-red-500 fill-red-500' : ''}`} />
-              </button>
-            </div>
+    <main className="bg-white dark:bg-[#070707] text-zinc-900 dark:text-white min-h-screen transition-colors duration-300 pb-28">
+
+      {/* ===== STICKY BREADCRUMB HEADER (Navbar Aligned Container Width) ===== */}
+      <div className="bg-zinc-50/90 dark:bg-[#101010]/90 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-30 py-4">
+        <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400 overflow-x-auto">
+            <Link href="/" className="hover:text-black dark:hover:text-white transition">Home</Link>
+            <span>/</span>
+            <Link href="/shop" className="hover:text-black dark:hover:text-white transition">Shop</Link>
+            <span>/</span>
+            <span className="text-zinc-900 dark:text-white font-bold line-clamp-1">{product.name}</span>
           </div>
+
+          <button
+            onClick={() =>
+              toggleWishlist({
+                productId: product.id,
+                name: product.name,
+                image: (product.images && product.images[0]) || "",
+                price: product.price,
+                salePrice: product.salePrice,
+                isOnSale: product.isOnSale,
+                category: product.category,
+              })
+            }
+            className="p-2.5 rounded-full bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 shadow-sm hover:scale-110 transition cursor-pointer"
+          >
+            <Heart
+              className={`w-4 h-4 ${
+                isInWishlist(product.id) ? "text-red-500 fill-red-500" : "text-zinc-600 dark:text-zinc-300"
+              }`}
+            />
+          </button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Image Gallery */}
+      {/* ===== MAIN PRODUCT DISPLAY CONTAINER ===== */}
+      <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
+
+          {/* ===== 1. LEFT COLUMN: IMAGE GALLERY ===== */}
           <div className="space-y-4">
-            <div className="relative group bg-white rounded-2xl overflow-hidden shadow-lg">
+            <div className="relative group aspect-[4/5] bg-zinc-100 dark:bg-[#121212] rounded-3xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-xl">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeImage}
-                  initial={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ duration: 0.3 }}
-                  className="relative"
+                  className="relative w-full h-full"
                 >
-                  <img
-                    src={product.images?.[activeImage] || "/placeholder.png"}
+                  <Image
+                    src={galleryImages[activeImage] || galleryImages[0] || "/lookbook/look_book_banner.avif"}
                     alt={product.name}
-                    className="w-full h-[400px] sm:h-[500px] lg:h-[600px] object-cover"
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-cover filter brightness-95 contrast-105"
                   />
                 </motion.div>
               </AnimatePresence>
 
+              {/* Discount Badge */}
+              {discountPercent > 0 && (
+                <div className="absolute top-5 left-5 z-20">
+                  <span className="px-4 py-2 bg-red-600 text-white font-bold text-xs sm:text-sm uppercase tracking-wider rounded-full shadow-2xl flex items-center gap-1.5">
+                    <Flame className="w-4 h-4 fill-white" />
+                    -{discountPercent}% OFF
+                  </span>
+                </div>
+              )}
+
+              {/* Prev / Next Arrows */}
               {hasMultipleImages && (
                 <>
                   <button
                     onClick={prevImage}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110 opacity-0 group-hover:opacity-100"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-black/60 hover:bg-black text-white rounded-full backdrop-blur-md shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110 z-20"
                   >
-                    <HiOutlineChevronLeft className="text-2xl" />
+                    <ChevronLeft className="w-5 h-5" />
                   </button>
                   <button
                     onClick={nextImage}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110 opacity-0 group-hover:opacity-100"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-black/60 hover:bg-black text-white rounded-full backdrop-blur-md shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110 z-20"
                   >
-                    <HiOutlineChevronRight className="text-2xl" />
+                    <ChevronRight className="w-5 h-5" />
                   </button>
                 </>
               )}
-
-              {hasMultipleImages && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
-                  {activeImage + 1} / {product.images.length}
-                </div>
-              )}
             </div>
 
+            {/* Gallery Thumbnails */}
             {hasMultipleImages && (
-              <div className="flex gap-3 overflow-x-auto pb-2 justify-center">
-                {product.images.map((img, idx) => (
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {galleryImages.map((img, idx) => (
                   <button
                     key={idx}
                     onClick={() => setActiveImage(idx)}
-                    className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${activeImage === idx
-                        ? "border-black shadow-md scale-105"
-                        : "border-gray-200 hover:border-gray-400"
-                      }`}
+                    className={`relative w-20 h-24 rounded-2xl overflow-hidden border-2 transition-all flex-shrink-0 cursor-pointer ${
+                      activeImage === idx
+                        ? "border-amber-400 ring-2 ring-amber-400/30 scale-105"
+                        : "border-zinc-200 dark:border-zinc-800 opacity-60 hover:opacity-100"
+                    }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <Image src={img} alt="" fill className="object-cover" />
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Product Details */}
+          {/* ===== 2. RIGHT COLUMN: PRODUCT DETAILS & SEPARATE PRICING BOX ===== */}
           <div className="space-y-6">
-            <div>
-              <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
-                {product.category || "Premium Collection"}
+            
+            {/* Category Pill & Brand Badge */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 fill-amber-500" />
+                <span>ENDER OFFICIAL</span>
+              </span>
+              <span className="px-4 py-1.5 rounded-full bg-zinc-100 dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-medium uppercase tracking-wider">
+                {product.category || "PREMIUM COLLECTION"}
               </span>
             </div>
 
-            <h1 className="text-3xl lg:text-4xl font-bold text-gray-800">
+            {/* Title */}
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold uppercase tracking-tight leading-tight">
               {product.name}
             </h1>
 
-            <div className="bg-gray-50 rounded-2xl p-6">
-              <span className="text-3xl lg:text-4xl font-bold text-gray-800">
-                Rs. {product.price?.toLocaleString()}
-              </span>
+            {/* ===== SEPARATE & CLEAR PRICE DISPLAY BOX ===== */}
+            <div className="p-6 rounded-3xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/80 pb-4">
+                <div>
+                  <span className="text-xs font-medium uppercase tracking-widest text-zinc-400 block mb-1">
+                    Store Price
+                  </span>
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-900 dark:text-amber-400">
+                      Rs. {unitPrice?.toLocaleString()}
+                    </span>
+                    {product.price && product.salePrice && product.price > product.salePrice && (
+                      <span className="text-xl font-normal text-zinc-400 line-through">
+                        Rs. {product.price.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {discountPercent > 0 && (
+                  <span className="px-4 py-2 rounded-2xl bg-red-600 text-white text-xs font-bold uppercase tracking-wider shadow-md">
+                    SAVE {discountPercent}%
+                  </span>
+                )}
+              </div>
+
+              {/* Total Calculation Row */}
+              <div className="flex items-center justify-between text-sm font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
+                <span>Order Total ({quantity} {quantity === 1 ? "Item" : "Items"}):</span>
+                <span className="text-xl text-zinc-900 dark:text-white font-bold">
+                  Rs. {totalPrice.toLocaleString()}
+                </span>
+              </div>
             </div>
 
-            <div>
-              <p className="text-gray-600 leading-relaxed">
-                {product.description ||
-                  "Premium quality product with excellent craftsmanship. Designed for comfort and durability."}
-              </p>
-            </div>
+            {/* Description */}
+            <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-300 font-normal leading-relaxed">
+              {product.description ||
+                "Engineered with heavyweight premium fabrics, athletic ergonomics, and durable stitching built for fight training, active lifestyle, and everyday confidence."}
+            </p>
 
+            {/* Color Selection */}
             {product.colors && product.colors.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-800">Color</h3>
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">Select Color</h3>
                   {selectedColor && (
-                    <span className="text-sm text-gray-500">
-                      Selected: <span className="font-medium">{selectedColor}</span>
+                    <span className="text-sm font-semibold text-amber-500 uppercase tracking-wider">
+                      Selected: {selectedColor}
                     </span>
                   )}
                 </div>
                 <div className="flex gap-3 flex-wrap">
                   {product.colors.map((color) => {
                     const colorStock = getColorStock(color);
-                    const isOutOfStock = colorStock === 0;
+                    const isColorOut = colorStock === 0;
 
                     return (
                       <button
                         key={color}
                         onClick={() => handleColorSelect(color)}
-                        disabled={isOutOfStock}
-                        className="group relative"
+                        disabled={isColorOut}
+                        className={`group relative p-1 rounded-full border-2 transition-all cursor-pointer ${
+                          selectedColor === color
+                            ? "border-amber-400 ring-4 ring-amber-400/20 scale-110"
+                            : "border-zinc-300 dark:border-zinc-700 hover:scale-105"
+                        } ${isColorOut ? "opacity-40 cursor-not-allowed" : ""}`}
                       >
                         <div
-                          className={`w-12 h-12 rounded-full border-2 transition-all flex items-center justify-center ${selectedColor === color
-                              ? "border-black ring-2 ring-black/20 scale-110"
-                              : "border-gray-300 hover:scale-105"
-                            } ${isOutOfStock ? "opacity-40 cursor-not-allowed" : ""}`}
+                          className="w-10 h-10 rounded-full border border-black/10 flex items-center justify-center shadow-inner"
                           style={{ backgroundColor: color.toLowerCase() }}
                         >
                           {selectedColor === color && (
-                            <HiCheck className="text-white text-sm drop-shadow-lg" />
+                            <Check className="w-4 h-4 text-white drop-shadow-md" />
                           )}
                         </div>
-                        {isOutOfStock && (
-                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                            <span className="text-white text-[8px] font-bold">×</span>
-                          </div>
-                        )}
                       </button>
                     );
                   })}
@@ -412,13 +490,14 @@ export default function ProductPage() {
               </div>
             )}
 
+            {/* Size Selection */}
             {getUniqueSizes().length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-800">Size</h3>
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">Select Size</h3>
                   {selectedSize && (
-                    <span className="text-sm text-gray-500">
-                      Selected: <span className="font-medium">{selectedSize}</span>
+                    <span className="text-sm font-semibold text-amber-500 uppercase tracking-wider">
+                      Selected: {selectedSize}
                     </span>
                   )}
                 </div>
@@ -427,169 +506,165 @@ export default function ProductPage() {
                     const isAvailable = selectedColor
                       ? isSizeAvailableForSelectedColor(selectedColor, size.size)
                       : true;
-                    const specificStock = selectedColor
-                      ? getSpecificStock(selectedColor, size.size)
-                      : getSizeStock(size.size);
-                    const isOutOfStock = !isAvailable || specificStock === 0;
+                    const specificStock = getSizeStock(size.size);
+                    const isSizeOut = !isAvailable || specificStock === 0;
 
                     return (
                       <button
                         key={size.size}
-                        onClick={() => !isOutOfStock && handleSizeSelect(size.size)}
-                        disabled={isOutOfStock}
-                        className={`relative w-14 h-14 rounded-xl border-2 font-semibold transition-all ${selectedSize === size.size
-                            ? "border-black bg-black text-white scale-105"
-                            : isOutOfStock
-                              ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed line-through"
-                              : "border-gray-200 hover:border-gray-400 hover:bg-gray-50"
-                          }`}
+                        onClick={() => !isSizeOut && handleSizeSelect(size.size)}
+                        disabled={isSizeOut}
+                        className={`w-14 h-14 rounded-2xl border-2 font-bold text-base uppercase transition-all cursor-pointer flex items-center justify-center ${
+                          selectedSize === size.size
+                            ? "border-black dark:border-white bg-black dark:bg-white text-white dark:text-black shadow-lg scale-105"
+                            : isSizeOut
+                            ? "border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-[#181818] text-zinc-400 cursor-not-allowed line-through"
+                            : "border-zinc-300 dark:border-zinc-700 hover:border-amber-400 hover:text-amber-400 text-zinc-800 dark:text-zinc-200"
+                        }`}
                       >
                         {size.size}
                       </button>
                     );
                   })}
                 </div>
-                {selectedColor && !selectedSize && (
-                  <p className="text-xs text-blue-600 mt-2">
-                    👆 Select a size to continue
-                  </p>
-                )}
               </div>
             )}
 
-            <div className="bg-gray-50 rounded-xl p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Availability:</span>
-                <span
-                  className={`font-semibold ${isOutOfStock
-                      ? "text-red-600"
-                      : availableStock < 10
-                        ? "text-orange-600"
-                        : "text-green-600"
-                    }`}
-                >
-                  {isOutOfStock
-                    ? "Out of Stock"
-                    : availableStock < 10
-                      ? `Only ${availableStock} left!`
-                      : `${availableStock} available`}
-                </span>
-              </div>
+            {/* Stock Status Bar */}
+            <div className="p-4.5 rounded-2xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-sm font-medium uppercase tracking-wider">
+              <span className="text-zinc-500">Stock Availability:</span>
+              <span className={isOutOfStock ? "text-red-500 font-bold" : availableStock < 10 ? "text-amber-500 font-bold" : "text-emerald-500 font-bold"}>
+                {isOutOfStock ? "Out of Stock" : availableStock < 10 ? `🔥 Only ${availableStock} left in stock!` : `${availableStock} Units Available`}
+              </span>
             </div>
 
+            {/* Quantity Selector */}
             {!isOutOfStock && (
-              <div>
-                <h3 className="font-semibold text-gray-800 mb-3">Quantity</h3>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden">
+              <div className="space-y-4 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">Select Quantity</h3>
+                  <div className="flex items-center border border-zinc-300 dark:border-zinc-700 rounded-2xl overflow-hidden bg-zinc-50 dark:bg-[#141414]">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-12 h-12 flex items-center justify-center hover:bg-gray-100 transition"
+                      className="w-12 h-12 flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 transition cursor-pointer"
                     >
-                      <HiOutlineMinus className="text-lg" />
+                      <Minus className="w-4 h-4" />
                     </button>
-                    <span className="w-16 text-center font-semibold text-lg">
+                    <span className="w-12 text-center font-bold text-base">
                       {quantity}
                     </span>
                     <button
                       onClick={() => setQuantity(Math.min(availableStock, quantity + 1))}
                       disabled={quantity >= availableStock}
-                      className="w-12 h-12 flex items-center justify-center hover:bg-gray-100 transition disabled:opacity-50"
+                      className="w-12 h-12 flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 transition cursor-pointer disabled:opacity-40"
                     >
-                      <HiOutlinePlus className="text-lg" />
+                      <Plus className="w-4 h-4" />
                     </button>
                   </div>
-                  <span className="text-sm text-gray-500">
-                    Max: {availableStock} units
-                  </span>
+                </div>
+
+                {/* ===== ITEMIZED PRICE SUMMARY BREAKDOWN LIST ===== */}
+                <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 space-y-3">
+                  <div className="flex items-center justify-between text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                    <span>Unit Price:</span>
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      Rs. {unitPrice?.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                    <span>Selected Quantity:</span>
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      x {quantity}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                    <span>Delivery Charge:</span>
+                    {product.deliveryCharge === 0 || !product.deliveryCharge ? (
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider text-xs">
+                        FREE Delivery
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                        Rs. {product.deliveryCharge.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-base font-bold uppercase tracking-wider text-zinc-900 dark:text-white">
+                    <span>Total Amount:</span>
+                    <span className="text-xl text-zinc-900 dark:text-amber-400 font-bold">
+                      Rs. {totalPrice.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
 
-            {availableStock > 0 && availableStock < 10 && (
-              <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
-                <p className="text-sm text-orange-700 font-medium">
-                  ⚠️ Hurry! Only {availableStock} left in stock!
-                </p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white rounded-xl p-4 text-center border border-gray-100">
-                <HiOutlineTruck className="text-2xl mx-auto mb-2 text-gray-600" />
-                <p className="text-sm font-medium">Delivery</p>
-                {product.deliveryCharge === 0 ? (
-                  <p className="text-xs text-green-600 font-semibold">FREE Delivery</p>
-                ) : (
-                  <p className="text-xs text-gray-500">
-                    Rs. {product.deliveryCharge?.toLocaleString()}
-                  </p>
-                )}
-              </div>
-              <div className="bg-white rounded-xl p-4 text-center border border-gray-100">
-                <HiOutlineShieldCheck className="text-2xl mx-auto mb-2 text-gray-600" />
-                <p className="text-sm font-medium">Returns</p>
-                <p className="text-xs text-gray-500">30 Day Easy Returns</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4 pt-2">
+            {/* Add to Cart CTA */}
+            <div className="pt-2">
               <button
                 onClick={handleAddToCart}
-                disabled={!canAddToCart}
-                className={`flex-1 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${canAddToCart
-                    ? "bg-black text-white hover:bg-gray-800 hover:shadow-lg hover:scale-[1.02]"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  }`}
+                disabled={isOutOfStock || addingToCart}
+                className={`w-full py-5 rounded-2xl font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all duration-300 shadow-xl cursor-pointer ${
+                  !isOutOfStock
+                    ? "bg-black dark:bg-white text-white dark:text-black hover:bg-amber-400 hover:text-black dark:hover:bg-amber-400 dark:hover:text-black hover:scale-[1.01]"
+                    : "bg-zinc-300 dark:bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                }`}
               >
                 {addingToCart ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Adding...
+                    <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                    <span>Processing Order...</span>
                   </>
                 ) : (
                   <>
-                    <HiOutlineShoppingCart className="text-xl" />
-                    Add to Cart
+                    <ShoppingBag className="w-5 h-5" />
+                    <span>ADD TO CART</span>
                   </>
                 )}
               </button>
-              <button
-                disabled={!canAddToCart}
-                className={`flex-1 border-2 py-4 rounded-xl font-semibold transition-all ${canAddToCart
-                    ? "border-gray-300 hover:border-black hover:bg-black hover:text-white"
-                    : "border-gray-200 text-gray-400 cursor-not-allowed"
-                  }`}
-              >
-                Buy Now
-              </button>
             </div>
 
-            {(!selectedColor || !selectedSize) && !isOutOfStock && (
-              <p className="text-xs text-amber-600 text-center">
-                Please select both {!selectedColor ? "color" : ""}
-                {!selectedColor && !selectedSize && " and "}
-                {!selectedSize ? "size" : ""} to add to cart
-              </p>
-            )}
-
-            <div className="pt-4 border-t border-gray-100">
-              <p className="text-sm text-gray-500 mb-3">Share this product:</p>
-              <div className="flex gap-3">
-                <button className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-blue-600 hover:text-white transition">
-                  <FaFacebook />
-                </button>
-                <button className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-pink-600 hover:text-white transition">
-                  <FaInstagram />
-                </button>
-                <button className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-blue-400 hover:text-white transition">
-                  <FaTwitter />
-                </button>
+            {/* Delivery & Assurance Info */}
+            <div className="grid grid-cols-2 gap-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 text-center">
+                <Truck className="w-6 h-6 mx-auto mb-2 text-amber-500" />
+                <h4 className="text-xs font-bold uppercase tracking-wider">Fast Delivery</h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Islandwide Sri Lanka Dispatch</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 text-center">
+                <ShieldCheck className="w-6 h-6 mx-auto mb-2 text-amber-500" />
+                <h4 className="text-xs font-bold uppercase tracking-wider">Authentic Quality</h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">100% Guaranteed Genuine</p>
               </div>
             </div>
+
+            {/* ===== RETURN & EXCHANGE POLICY ASSURANCE CARD ===== */}
+            <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-amber-500">
+                  <RotateCcw className="w-4 h-4" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider">Ender 14-Day Return & Exchange Policy</h4>
+                </div>
+                <Link
+                  href="/return-and-exchange-policy-ender-wear"
+                  className="text-xs font-bold text-amber-500 hover:underline uppercase tracking-wider"
+                >
+                  Read Full Policy →
+                </Link>
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
+                Enjoy 14 days from delivery to initiate a return or size exchange. Items must be in unworn, unwashed condition with tags intact.
+              </p>
+            </div>
+
           </div>
+
         </div>
       </div>
-    </div>
+
+    </main>
   );
 }

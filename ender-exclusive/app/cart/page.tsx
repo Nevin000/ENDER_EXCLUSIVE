@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 import {
     HiOutlineShoppingBag,
-    HiOutlineTrash,
     HiOutlineMinus,
     HiOutlinePlus,
     HiArrowLeft,
@@ -15,10 +15,12 @@ import {
 } from "react-icons/hi2";
 import { FaTruck, FaShieldAlt, FaClock, FaFire, FaGift, FaTag } from "react-icons/fa";
 import { SiVisa, SiMastercard, SiDiscover, SiAmericanexpress } from "react-icons/si";
+import { Flame, Sparkles, ShoppingBag, ArrowRight, Trash2 } from "lucide-react";
 
 import { CartItem } from "@/types/cart";
 
 export default function CartPage() {
+    const router = useRouter();
     const {
         cart,
         loading,
@@ -92,7 +94,7 @@ export default function CartPage() {
         }, 0);
     }, [paidDeliveryItems]);
 
-    // 🔥 Delivery charge - ONE TIME PER PRODUCT
+    // Delivery charge - ONE TIME PER PRODUCT
     const totalDeliveryCharge = useMemo(() => {
         const uniqueProducts = new Map<string, number>();
 
@@ -109,7 +111,7 @@ export default function CartPage() {
         );
     }, [selectedCartItems]);
 
-    // 🔥 Delivery Breakdown - Group by productId
+    // Delivery Breakdown - Group by productId
     const deliveryBreakdown = useMemo(() => {
         const grouped = new Map<string, { name: string; charge: number; quantity: number }>();
 
@@ -136,11 +138,6 @@ export default function CartPage() {
     const hasSelected = selectedItems.size > 0;
     const hasDeliveryCharge = deliveryBreakdown.length > 0;
 
-    // Check if all selected items have free delivery
-    const allItemsFreeDelivery = useMemo(() => {
-        return selectedCartItems.every((item: CartItem) => (item.deliveryCharge ?? 0) === 0);
-    }, [selectedCartItems]);
-
     // Handle quantity with loading state
     const handleIncreaseQty = async (id: string) => {
         setUpdatingId(id);
@@ -161,27 +158,32 @@ export default function CartPage() {
     };
 
     // Remove with confirmation
-    const handleRemoveItem = (id: string) => {
+    const handleRemoveItem = async (id: string) => {
         if (confirm("Remove this product from your cart?")) {
-            removeItem(id);
+            await removeItem(id);
         }
     };
 
     // Remove all selected items
-    const handleRemoveSelected = () => {
+    const handleRemoveSelected = async () => {
         if (selectedItems.size === 0) return;
         if (confirm(`Remove ${selectedItems.size} selected items?`)) {
-            selectedItems.forEach(id => removeItem(id));
+            const ids = Array.from(selectedItems);
             setSelectedItems(new Set());
+            for (const id of ids) {
+                await removeItem(id);
+            }
         }
     };
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-100">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-5"></div>
-                    <p className="text-gray-600 font-medium">Loading your cart...</p>
+            <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#070707] text-zinc-900 dark:text-white transition-colors duration-300">
+                <div className="text-center space-y-4">
+                    <div className="w-14 h-14 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <p className="text-sm font-black uppercase tracking-widest text-red-500">
+                        Loading Your Cart...
+                    </p>
                 </div>
             </div>
         );
@@ -189,86 +191,105 @@ export default function CartPage() {
 
     if (cart.length === 0) {
         return (
-            <div className="min-h-screen flex items-center justify-center px-6 bg-gray-100">
+            <div className="min-h-screen flex items-center justify-center px-6 bg-white dark:bg-[#070707] text-zinc-900 dark:text-white transition-colors duration-300 py-24">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
-                    className="text-center max-w-md bg-white rounded-2xl p-12 shadow-lg"
+                    className="text-center max-w-lg bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-3xl p-10 sm:p-14 shadow-lg space-y-6"
                 >
-                    <div className="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <HiOutlineShoppingBag className="text-6xl text-gray-300" />
+                    <div className="w-24 h-24 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                        <ShoppingBag className="w-12 h-12" />
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-800">Your Cart is Empty</h1>
-                    <p className="text-gray-500 mt-3">Looks like you haven't added anything yet.</p>
-                    <Link
-                        href="/shop"
-                        className="inline-flex items-center gap-2 mt-8 bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 transition-all duration-300 shadow-lg"
-                    >
-                        <HiArrowLeft />
-                        Start Shopping
-                    </Link>
+                    <div className="space-y-2">
+                        <h1 className="text-3xl font-black uppercase tracking-tight">Your Cart is Empty</h1>
+                        <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium leading-relaxed">
+                            Looks like you haven't added any gear to your cart yet. Explore our high-performance apparel and signature streetwear.
+                        </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+                        <Link
+                            href="/shop"
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest px-8 py-4 rounded-full transition-all duration-300 shadow-xl hover:scale-105"
+                        >
+                            <ArrowRight className="w-4 h-4" />
+                            <span>Explore Store Catalog</span>
+                        </Link>
+                        <Link
+                            href="/on-sale"
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-widest px-6 py-4 rounded-full transition"
+                        >
+                            <Flame className="w-4 h-4 text-red-500" />
+                            <span>Flash Sale Deals</span>
+                        </Link>
+                    </div>
                 </motion.div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 py-4 sm:py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6">
-                {/* 🔥 Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
-                            Shopping Cart
+        <div className="min-h-screen bg-white dark:bg-[#070707] text-zinc-900 dark:text-white transition-colors duration-300 py-8 sm:py-12 lg:py-16 pb-28">
+            <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+                
+                {/* ===== HEADER BAR ===== */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800/80 pb-6">
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black uppercase tracking-tight">
+                            Shopping <span className="text-red-600 dark:text-red-500">Cart</span>
                         </h1>
-                        <span className="text-base sm:text-lg text-gray-500 bg-white px-4 py-1.5 rounded-full border border-gray-200">
+                        <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-white bg-red-600 px-4 py-1.5 rounded-full shadow-md">
                             {totalQuantity} {totalQuantity === 1 ? 'item' : 'items'}
                         </span>
                     </div>
                     <Link
                         href="/shop"
-                        className="text-base text-[#007185] hover:text-[#C7511F] hover:underline transition font-medium"
+                        className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-500 transition"
                     >
-                        ← Continue Shopping
+                        <ArrowRight className="w-4 h-4 rotate-180" />
+                        <span>Continue Shopping</span>
                     </Link>
                 </div>
 
-                <div className="grid lg:grid-cols-3 gap-6">
-                    {/* 🔥 Left: Cart Items (2/3) */}
-                    <div className="lg:col-span-2 space-y-4">
-                        {/* Select All Bar */}
-                        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-10">
+                    
+                    {/* ===== LEFT: CART ITEMS (2/3) ===== */}
+                    <div className="lg:col-span-2 space-y-6">
+                        
+                        {/* Select All & Bulk Controls Bar */}
+                        <div className="bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4 shadow-sm">
                             <button
                                 onClick={toggleSelectAll}
-                                className="flex items-center gap-3 text-base font-medium text-gray-700 hover:text-black transition"
+                                className="flex items-center gap-3.5 text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white hover:text-red-600 dark:hover:text-red-500 transition cursor-pointer"
                             >
-                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${isAllSelected
-                                        ? 'bg-red-500 border-red-500'
-                                        : 'border-gray-300 hover:border-gray-400'
-                                    }`}>
-                                    {isAllSelected && <HiCheck className="text-white text-sm" />}
+                                <div className={`w-6 h-6 rounded-xl border-2 flex items-center justify-center transition ${
+                                    isAllSelected
+                                        ? 'bg-red-600 border-red-600 text-white'
+                                        : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-[#181818]'
+                                }`}>
+                                    {isAllSelected && <HiCheck className="text-white text-base stroke-[3]" />}
                                 </div>
-                                Select All ({totalQuantity} items)
+                                <span>Select All Items ({totalQuantity})</span>
                             </button>
 
                             <div className="flex items-center gap-4">
-                                <span className="text-sm text-gray-400 bg-gray-50 px-3 py-1 rounded-full">
-                                    {selectedQuantity} selected
+                                <span className="text-xs font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 px-4 py-2 rounded-full border border-amber-500/20">
+                                    {selectedQuantity} Selected
                                 </span>
                                 {selectedItems.size > 0 && (
                                     <button
                                         onClick={handleRemoveSelected}
-                                        className="text-sm text-[#007185] hover:text-[#C7511F] hover:underline transition font-medium"
+                                        className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-red-600 dark:text-red-500 hover:underline transition cursor-pointer"
                                     >
-                                        Delete selected
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                        <span>Delete Selected ({selectedItems.size})</span>
                                     </button>
                                 )}
                             </div>
                         </div>
 
-                        {/* 🔥 Cart Items */}
-                        <div className="space-y-3">
+                        {/* Cart Product List */}
+                        <div className="space-y-5">
                             <AnimatePresence>
                                 {cart.map((item: CartItem) => {
                                     const isSelected = selectedItems.has(item.id);
@@ -286,116 +307,121 @@ export default function CartPage() {
                                             layout
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, x: -100 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
                                             transition={{ duration: 0.3 }}
-                                            className={`bg-white rounded-xl border-2 transition-all duration-300 shadow-sm ${isSelected
-                                                    ? 'border-red-500 shadow-md shadow-red-500/10'
-                                                    : 'border-gray-200 hover:border-gray-300'
-                                                }`}
+                                            className={`bg-zinc-50/80 dark:bg-[#111111] rounded-3xl border-2 transition-all duration-300 shadow-sm overflow-hidden ${
+                                                isSelected
+                                                    ? 'border-red-600 dark:border-red-500/80 shadow-red-500/10'
+                                                    : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
+                                            }`}
                                         >
-                                            <div className="p-5">
-                                                <div className="flex gap-4">
-                                                    {/* Select Checkbox */}
+                                            <div className="p-6 sm:p-7">
+                                                <div className="flex items-start gap-4 sm:gap-6">
+                                                    
+                                                    {/* Selection Checkbox */}
                                                     <button
                                                         onClick={() => toggleItem(item.id)}
-                                                        className="mt-1 shrink-0"
+                                                        className="mt-2 shrink-0 cursor-pointer"
+                                                        aria-label="Select item"
                                                     >
-                                                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${isSelected
-                                                                ? 'bg-red-500 border-red-500'
-                                                                : 'border-gray-300 hover:border-gray-400'
-                                                            }`}>
-                                                            {isSelected && <HiCheck className="text-white text-sm" />}
+                                                        <div className={`w-6 h-6 rounded-xl border-2 flex items-center justify-center transition ${
+                                                            isSelected
+                                                                ? 'bg-red-600 border-red-600 text-white'
+                                                                : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-[#181818]'
+                                                        }`}>
+                                                            {isSelected && <HiCheck className="text-white text-base stroke-[3]" />}
                                                         </div>
                                                     </button>
 
                                                     {/* Product Image */}
-                                                    <Link href={`/shop/${item.productId}`} className="shrink-0">
+                                                    <Link
+                                                        href={item.isOnSale ? `/on-sale/${item.productId}` : `/shop/${item.productId}`}
+                                                        className="shrink-0 relative group"
+                                                    >
                                                         <img
-                                                            src={item.image || "/placeholder.png"}
+                                                            src={item.image || "/lookbook/look_book_banner.avif"}
                                                             alt={item.name}
-                                                            className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl object-cover bg-gray-50 border border-gray-100"
+                                                            className="w-28 h-32 sm:w-36 sm:h-40 rounded-2xl object-cover bg-zinc-100 dark:bg-[#1A1A1A] border border-zinc-200 dark:border-zinc-800 shadow-sm group-hover:scale-105 transition-transform duration-300"
                                                         />
                                                     </Link>
 
                                                     {/* Product Details */}
-                                                    <div className="flex-1 min-w-0">
-                                                        <Link href={`/shop/${item.productId}`}>
-                                                            <h3 className="text-lg sm:text-xl font-semibold text-[#007185] hover:text-[#C7511F] hover:underline transition">
+                                                    <div className="flex-1 min-w-0 space-y-3">
+                                                        <Link
+                                                            href={item.isOnSale ? `/on-sale/${item.productId}` : `/shop/${item.productId}`}
+                                                        >
+                                                            <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-white hover:text-red-600 dark:hover:text-red-500 transition line-clamp-2 leading-snug">
                                                                 {item.name}
                                                             </h3>
                                                         </Link>
 
-                                                        {/* Product Info */}
-                                                        <div className="flex flex-wrap items-center gap-3 mt-2">
-                                                            <span className="text-sm text-gray-600 font-medium">
-                                                                {item.color} | {item.size}
+                                                        {/* Specs & Delivery Pills */}
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <span className="text-[11px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 bg-zinc-200/80 dark:bg-zinc-800 px-3.5 py-1.5 rounded-full border border-zinc-300 dark:border-zinc-700">
+                                                                Color: {item.color} • Size: {item.size}
                                                             </span>
+
                                                             {item.isOnSale && (
-                                                                <span className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
+                                                                <span className="text-[11px] font-black uppercase tracking-wider text-white bg-red-600 px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm">
+                                                                    <Flame className="w-3 h-3 fill-white" />
                                                                     SALE
                                                                 </span>
                                                             )}
+
                                                             {isFreeDelivery ? (
-                                                                <span className="text-sm text-green-600 font-medium flex items-center gap-1.5 bg-green-50 px-3 py-1 rounded-full">
-                                                                    <FaTruck className="text-sm" />
+                                                                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3.5 py-1.5 rounded-full border border-emerald-500/20 flex items-center gap-1.5">
+                                                                    <FaTruck className="text-xs" />
                                                                     FREE Delivery
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-sm text-orange-600 font-medium flex items-center gap-1.5 bg-orange-50 px-3 py-1 rounded-full">
-                                                                    <FaTruck className="text-sm" />
+                                                                <span className="text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3.5 py-1.5 rounded-full border border-amber-500/20 flex items-center gap-1.5">
+                                                                    <FaTruck className="text-xs" />
                                                                     Delivery: Rs. {deliveryCharge}
                                                                 </span>
                                                             )}
                                                         </div>
 
-                                                        {/* Stock Warning */}
+                                                        {/* Stock Notice */}
                                                         {isVeryLowStock && (
-                                                            <div className="flex items-center gap-2 mt-2 bg-red-50 px-3 py-1.5 rounded-lg">
-                                                                <FaFire className="text-red-500 text-sm" />
-                                                                <p className="text-sm font-bold text-red-600">
-                                                                    Only {item.stock} left in stock - order soon!
-                                                                </p>
+                                                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-xs font-bold">
+                                                                <FaFire className="text-xs" />
+                                                                <span>Only {item.stock} left in stock - order soon!</span>
                                                             </div>
                                                         )}
                                                         {isLowStock && !isVeryLowStock && (
-                                                            <p className="text-sm text-orange-600 font-medium mt-2">
+                                                            <p className="text-xs text-amber-500 font-bold">
                                                                 Only {item.stock} left in stock
                                                             </p>
                                                         )}
 
-                                                        {/* Price */}
-                                                        <div className="flex flex-wrap items-center gap-3 mt-3">
-                                                            {item.isOnSale ? (
-                                                                <>
-                                                                    <span className="text-2xl font-bold text-red-600">
-                                                                        Rs. {price.toLocaleString()}
-                                                                    </span>
-                                                                    <span className="text-base text-gray-400 line-through">
-                                                                        Rs. {item.price.toLocaleString()}
-                                                                    </span>
-                                                                </>
-                                                            ) : (
-                                                                <span className="text-2xl font-bold text-gray-900">
-                                                                    Rs. {price.toLocaleString()}
+                                                        {/* Unit Price */}
+                                                        <div className="flex items-baseline gap-3 pt-1">
+                                                            <span className="text-xl sm:text-2xl font-black text-red-600 dark:text-red-500">
+                                                                Rs. {price.toLocaleString()}
+                                                            </span>
+                                                            {item.isOnSale && item.price && (
+                                                                <span className="text-xs font-semibold text-zinc-400 line-through">
+                                                                    Rs. {item.price.toLocaleString()}
                                                                 </span>
                                                             )}
                                                         </div>
 
-                                                        {/* Bottom Controls */}
-                                                        <div className="flex flex-wrap items-center gap-4 mt-4 pt-3 border-t border-gray-100">
-                                                            {/* Quantity */}
-                                                            <div className="flex items-center border border-gray-300 rounded-lg">
+                                                        {/* Controls Bar */}
+                                                        <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800/80">
+                                                            
+                                                            {/* Quantity Selector */}
+                                                            <div className="flex items-center border border-zinc-300 dark:border-zinc-700 rounded-2xl overflow-hidden bg-white dark:bg-[#181818] shadow-sm">
                                                                 <button
                                                                     onClick={() => handleDecreaseQty(item.id)}
                                                                     disabled={isUpdating || item.quantity <= 1}
-                                                                    className="w-10 h-10 sm:w-11 sm:h-11 hover:bg-gray-100 flex items-center justify-center transition disabled:opacity-40 text-lg"
+                                                                    className="w-10 h-10 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center transition disabled:opacity-40 text-zinc-800 dark:text-zinc-200 cursor-pointer"
                                                                 >
-                                                                    <HiOutlineMinus className="text-lg" />
+                                                                    <HiOutlineMinus className="text-base" />
                                                                 </button>
 
-                                                                <div className="w-12 sm:w-14 text-center text-lg font-bold">
+                                                                <div className="w-12 text-center text-sm font-black text-zinc-900 dark:text-white">
                                                                     {isUpdating ? (
-                                                                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                                                        <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                                                                     ) : (
                                                                         item.quantity
                                                                     )}
@@ -404,26 +430,34 @@ export default function CartPage() {
                                                                 <button
                                                                     onClick={() => handleIncreaseQty(item.id)}
                                                                     disabled={isUpdating || item.quantity >= item.stock}
-                                                                    className="w-10 h-10 sm:w-11 sm:h-11 hover:bg-gray-100 flex items-center justify-center transition disabled:opacity-40 text-lg"
+                                                                    className="w-10 h-10 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center transition disabled:opacity-40 text-zinc-800 dark:text-zinc-200 cursor-pointer"
                                                                 >
-                                                                    <HiOutlinePlus className="text-lg" />
+                                                                    <HiOutlinePlus className="text-base" />
                                                                 </button>
                                                             </div>
 
-                                                            {/* Item Total */}
-                                                            <span className="text-base font-semibold text-gray-800">
-                                                                Total: <span className="text-red-600">Rs. {itemTotal.toLocaleString()}</span>
-                                                            </span>
+                                                            {/* Item Total & Remove */}
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="text-right">
+                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Total</span>
+                                                                    <span className="text-base sm:text-lg font-black text-zinc-900 dark:text-white">
+                                                                        Rs. {itemTotal.toLocaleString()}
+                                                                    </span>
+                                                                </div>
 
-                                                            {/* Delete */}
-                                                            <button
-                                                                onClick={() => handleRemoveItem(item.id)}
-                                                                className="text-sm text-[#007185] hover:text-[#C7511F] hover:underline transition font-medium"
-                                                            >
-                                                                Delete
-                                                            </button>
+                                                                <button
+                                                                    onClick={() => handleRemoveItem(item.id)}
+                                                                    className="p-2.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-600 hover:text-white transition cursor-pointer"
+                                                                    title="Remove from Cart"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+
                                                         </div>
+
                                                     </div>
+
                                                 </div>
                                             </div>
                                         </motion.div>
@@ -432,207 +466,180 @@ export default function CartPage() {
                             </AnimatePresence>
                         </div>
 
-                        {/* Trust Badges */}
-                        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-                            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500">
-                                <div className="flex items-center gap-2">
-                                    <FaShieldAlt className="text-xl text-green-600" />
-                                    <span className="font-medium">Secure Checkout</span>
+                        {/* Customer Trust Badges Bar */}
+                        <div className="bg-zinc-50 dark:bg-[#111111] rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-xs font-black uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+                                <div className="flex flex-col items-center gap-2 p-2">
+                                    <FaShieldAlt className="text-2xl text-emerald-500" />
+                                    <span>Secure Checkout</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <FaClock className="text-xl text-blue-600" />
-                                    <span className="font-medium">Fast Delivery</span>
+                                <div className="flex flex-col items-center gap-2 p-2">
+                                    <FaClock className="text-2xl text-amber-500" />
+                                    <span>Islandwide Dispatch</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <FaTag className="text-xl text-purple-600" />
-                                    <span className="font-medium">Best Prices</span>
+                                <div className="flex flex-col items-center gap-2 p-2">
+                                    <FaTag className="text-2xl text-red-500" />
+                                    <span>Best Price Guarantee</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <FaGift className="text-xl text-orange-600" />
-                                    <span className="font-medium">Free Returns</span>
+                                <div className="flex flex-col items-center gap-2 p-2">
+                                    <FaGift className="text-2xl text-blue-500" />
+                                    <span>Authentic Quality</span>
                                 </div>
                             </div>
                         </div>
+
                     </div>
 
-                    {/* 🔥 Right: Order Summary (1/3) */}
+                    {/* ===== RIGHT: ORDER SUMMARY (1/3) ===== */}
                     <div className="lg:col-span-1">
-                        <div className="sticky top-24 bg-white rounded-xl border border-gray-200 shadow-lg p-6 space-y-4">
-                            <h2 className="text-2xl font-bold text-gray-900">Order Summary</h2>
+                        <div className="sticky top-28 bg-zinc-50 dark:bg-[#111111] rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-xl p-7 sm:p-8 space-y-6">
+                            
+                            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/80 pb-4">
+                                <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">
+                                    Order Summary
+                                </h2>
+                                <span className="text-xs font-black text-amber-500 uppercase tracking-widest">
+                                    {selectedQuantity} {selectedQuantity === 1 ? 'Item' : 'Items'}
+                                </span>
+                            </div>
 
                             {!hasSelected ? (
-                                <div className="text-center py-8">
-                                    <p className="text-gray-400 text-base">Select items to checkout</p>
+                                <div className="text-center py-10 space-y-2">
+                                    <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">
+                                        Select at least 1 item from your cart to proceed to checkout.
+                                    </p>
                                 </div>
                             ) : (
                                 <>
-                                    {/* Free Delivery Items */}
+                                    {/* Free Delivery Items Subtotal */}
                                     {freeDeliveryItems.length > 0 && (
-                                        <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-                                            <div className="flex items-center gap-2 text-base font-semibold text-green-700 mb-2">
-                                                <FaGift className="text-green-600 text-lg" />
-                                                Free Delivery Items
-                                                <span className="text-sm font-normal text-green-500 bg-green-100 px-2.5 py-0.5 rounded-full">
-                                                    {freeDeliveryItems.reduce((sum, item) => sum + item.quantity, 0)} items
-                                                </span>
+                                        <div className="bg-emerald-500/10 rounded-2xl p-4 border border-emerald-500/20 space-y-2">
+                                            <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                                <div className="flex items-center gap-2">
+                                                    <FaGift className="text-sm" />
+                                                    <span>Free Delivery Items</span>
+                                                </div>
+                                                <span>{freeDeliveryItems.reduce((sum, item) => sum + item.quantity, 0)} items</span>
                                             </div>
-                                            <div className="space-y-1.5">
-                                                {freeDeliveryItems.map((item: CartItem) => {
-                                                    const price = item.isOnSale ? item.salePrice ?? item.price : item.price;
-                                                    return (
-                                                        <div key={item.id} className="flex justify-between text-base">
-                                                            <span className="text-gray-600 truncate">
-                                                                {item.name} <span className="text-gray-400">× {item.quantity}</span>
-                                                            </span>
-                                                            <span className="font-semibold text-green-700">
-                                                                Rs. {(price * item.quantity).toLocaleString()}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
-                                                <div className="flex justify-between text-base font-bold pt-2 border-t border-green-200">
-                                                    <span>Subtotal</span>
-                                                    <span className="text-green-700">Rs. {freeDeliverySubtotal.toLocaleString()}</span>
-                                                </div>
-                                                <div className="flex justify-between text-base text-green-600">
-                                                    <span>Delivery</span>
-                                                    <span className="font-bold">FREE</span>
-                                                </div>
+                                            <div className="flex justify-between text-sm font-bold pt-1 border-t border-emerald-500/20">
+                                                <span>Items Total</span>
+                                                <span className="text-emerald-600 dark:text-emerald-400">
+                                                    Rs. {freeDeliverySubtotal.toLocaleString()}
+                                                </span>
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* Paid Delivery Items */}
+                                    {/* Standard Delivery Items Subtotal */}
                                     {paidDeliveryItems.length > 0 && (
-                                        <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
-                                            <div className="flex items-center gap-2 text-base font-semibold text-orange-700 mb-2">
-                                                <FaTruck className="text-orange-600 text-lg" />
-                                                Standard Delivery Items
-                                                <span className="text-sm font-normal text-orange-500 bg-orange-100 px-2.5 py-0.5 rounded-full">
-                                                    {paidDeliveryItems.reduce((sum, item) => sum + item.quantity, 0)} items
-                                                </span>
-                                            </div>
-                                            <div className="space-y-2">
-                                                {paidDeliveryItems.map((item: CartItem) => {
-                                                    const price = item.isOnSale ? item.salePrice ?? item.price : item.price;
-                                                    const itemDelivery = item.deliveryCharge ?? 0;
-                                                    return (
-                                                        <div key={item.id}>
-                                                            <div className="flex justify-between text-base">
-                                                                <span className="text-gray-600 truncate">
-                                                                    {item.name} <span className="text-gray-400">× {item.quantity}</span>
-                                                                </span>
-                                                                <span className="font-semibold">
-                                                                    Rs. {(price * item.quantity).toLocaleString()}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex justify-between text-sm text-gray-400 pl-2">
-                                                                <span>Delivery: Rs. {item.deliveryCharge}</span>
-                                                                <span>Rs. {itemDelivery.toLocaleString()}</span>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                                <div className="flex justify-between text-base font-bold pt-2 border-t border-orange-200">
-                                                    <span>Subtotal</span>
-                                                    <span className="text-orange-700">Rs. {paidDeliverySubtotal.toLocaleString()}</span>
+                                        <div className="bg-amber-500/10 rounded-2xl p-4 border border-amber-500/20 space-y-2">
+                                            <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                                <div className="flex items-center gap-2">
+                                                    <FaTruck className="text-sm" />
+                                                    <span>Standard Delivery Items</span>
                                                 </div>
+                                                <span>{paidDeliveryItems.reduce((sum, item) => sum + item.quantity, 0)} items</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm font-bold pt-1 border-t border-amber-500/20">
+                                                <span>Items Total</span>
+                                                <span className="text-amber-600 dark:text-amber-400">
+                                                    Rs. {paidDeliverySubtotal.toLocaleString()}
+                                                </span>
                                             </div>
                                         </div>
                                     )}
 
-                                    <hr className="border-gray-200" />
-
-                                    {/* Grand Total Breakdown */}
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-base">
-                                            <span className="text-gray-600">Items Subtotal</span>
-                                            <span className="font-semibold">Rs. {itemsSubtotal.toLocaleString()}</span>
+                                    {/* Items Subtotal & Delivery Total */}
+                                    <div className="space-y-3 text-sm font-bold pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                                        <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
+                                            <span>Items Subtotal</span>
+                                            <span className="text-zinc-900 dark:text-white font-black">
+                                                Rs. {itemsSubtotal.toLocaleString()}
+                                            </span>
                                         </div>
 
-                                        {hasDeliveryCharge && (
-                                            <div className="flex justify-between text-base">
-                                                <span className="text-gray-600">Total Delivery</span>
-                                                <span className="font-semibold text-orange-600">Rs. {totalDeliveryCharge.toLocaleString()}</span>
-                                            </div>
-                                        )}
+                                        <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
+                                            <span>Total Delivery Charge</span>
+                                            <span className="font-black text-amber-500">
+                                                {totalDeliveryCharge === 0 ? "FREE" : `Rs. ${totalDeliveryCharge.toLocaleString()}`}
+                                            </span>
+                                        </div>
                                     </div>
 
-                                    <hr className="border-gray-200" />
-
-                                    {/* Grand Total */}
-                                    <div className="flex justify-between text-2xl font-bold">
-                                        <span>Grand Total</span>
-                                        <span className="text-red-600">Rs. {grandTotal.toLocaleString()}</span>
-                                    </div>
-
-                                    {/* Delivery Charges Breakdown */}
+                                    {/* Delivery Breakdown List */}
                                     {hasDeliveryCharge && (
-                                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-                                            <p className="text-sm font-semibold text-gray-600 mb-1.5">Delivery Charges Breakdown</p>
-                                            <div className="space-y-1">
+                                        <div className="bg-zinc-100 dark:bg-[#181818] rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 space-y-2">
+                                            <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                                                Delivery Breakdown
+                                            </p>
+                                            <div className="space-y-1.5 text-xs">
                                                 {deliveryBreakdown.map((item) => (
-                                                    <div key={item.name} className="flex justify-between text-sm text-gray-600">
-                                                        <span>
-                                                            {item.name}
-                                                            <span className="text-gray-400 ml-1">(×{item.quantity})</span>
+                                                    <div key={item.name} className="flex justify-between text-zinc-600 dark:text-zinc-400">
+                                                        <span className="truncate max-w-[170px]">
+                                                            {item.name} <span className="text-zinc-400">(×{item.quantity})</span>
                                                         </span>
-                                                        <span className="font-medium">Rs. {item.charge}</span>
+                                                        <span className="font-bold text-zinc-900 dark:text-white">Rs. {item.charge}</span>
                                                     </div>
                                                 ))}
-                                                <div className="flex justify-between text-sm font-bold pt-1.5 border-t border-gray-200 text-gray-800">
-                                                    <span>Total Delivery</span>
-                                                    <span>Rs. {totalDeliveryCharge.toLocaleString()}</span>
-                                                </div>
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* 🔥 RED CHECKOUT BUTTON - PERFECTLY ALIGNED */}
-                                    <div className="pt-2">
-                                        <Link
-                                            href={hasSelected ? "/checkout" : "#"}
-                                            onClick={(e) => {
-                                                if (!hasSelected) {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                            className={`
-                        w-full py-4 rounded-xl text-center font-bold text-white text-lg 
-                        transition-all duration-300 flex items-center justify-center gap-3
-                        ${hasSelected
-                                                    ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-red-500/30 hover:scale-[1.02] active:scale-[0.98]'
-                                                    : 'bg-gray-300 cursor-not-allowed'
-                                                }
-                      `}
-                                        >
-                                            <span>🛒 Proceed to Checkout</span>
-                                            <span className="bg-white/20 px-3 py-0.5 rounded-full text-sm font-semibold">
-                                                {selectedQuantity} {selectedQuantity === 1 ? 'item' : 'items'}
-                                            </span>
-                                        </Link>
+                                    {/* Grand Total */}
+                                    <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 flex items-baseline justify-between">
+                                        <span className="text-base font-black uppercase tracking-wider">Grand Total</span>
+                                        <span className="text-3xl sm:text-4xl font-black text-red-600 dark:text-red-500">
+                                            Rs. {grandTotal.toLocaleString()}
+                                        </span>
                                     </div>
 
-                                    {/* Payment Methods */}
-                                    <div className="flex flex-col gap-3 pt-2 border-t border-gray-100">
-                                        <div className="flex items-center justify-center gap-3">
-                                            <span className="text-base text-gray-500 font-medium">Secure payments with</span>
-                                            <div className="flex items-center gap-3">
-                                                <SiVisa className="text-2xl text-[#1A1F71]" />
-                                                <SiMastercard className="text-2xl text-[#EB001B]" />
-                                                <SiDiscover className="text-2xl text-[#FF6000]" />
-                                                <SiAmericanexpress className="text-2xl text-[#006FCF]" />
-                                            </div>
-                                        </div>
-                                        <div className="text-center text-sm text-gray-400">
-                                            <span>🔒 Your payment is secure</span>
-                                        </div>
+                                    {/* PROCEED TO CHECKOUT BUTTON */}
+                                    <div className="pt-2">
+                                        <button
+                                            disabled={!hasSelected}
+                                            onClick={() => {
+                                                if (!hasSelected) return;
+                                                const ids = Array.from(selectedItems).join(",");
+                                                router.push(`/checkout?items=${ids}`);
+                                            }}
+                                            className={`
+                                                w-full py-4 sm:py-5 rounded-2xl text-center font-black text-white text-base sm:text-lg 
+                                                uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer shadow-xl
+                                                ${hasSelected
+                                                    ? 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 shadow-red-600/30 hover:scale-[1.02] active:scale-[0.98]'
+                                                    : 'bg-zinc-300 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-500 cursor-not-allowed'
+                                                }
+                                            `}
+                                        >
+                                            <ShoppingBag className="w-5 h-5" />
+                                            <span>Proceed to Checkout</span>
+                                        </button>
                                     </div>
+
+                                    {/* Secure Payment Icons */}
+                                    <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800/80 space-y-3 text-center">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block">
+                                            Accepted Payment Methods
+                                        </span>
+                                        <div className="flex items-center justify-center gap-4 text-3xl">
+                                            <SiVisa className="text-[#1A1F71] dark:text-white" />
+                                            <SiMastercard className="text-[#EB001B]" />
+                                            <SiDiscover className="text-[#FF6000]" />
+                                            <SiAmericanexpress className="text-[#006FCF]" />
+                                        </div>
+                                        <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                            🔒 100% Encrypted & Secure Checkout
+                                        </p>
+                                    </div>
+
                                 </>
                             )}
+
                         </div>
                     </div>
+
                 </div>
+
             </div>
         </div>
     );

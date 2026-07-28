@@ -1,567 +1,313 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState, useEffect } from "react";
-import { useCart } from "@/context/CartContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Mail, Phone, MapPin, Send, CheckCircle2, Clock, Sparkles } from "lucide-react";
+import { FaWhatsapp, FaInstagram, FaFacebookF, FaTiktok } from "react-icons/fa";
 
-import {
-  HiOutlineShoppingBag,
-  HiOutlineTrash,
-  HiOutlineMinus,
-  HiOutlinePlus,
-  HiArrowLeft,
-  HiCheck,
-} from "react-icons/hi2";
-import { FaTruck, FaShieldAlt, FaClock } from "react-icons/fa";
+export default function ContactPage() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    subject: "General Inquiry",
+    message: "",
+  });
 
-import { CartItem } from "@/types/cart";
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-export default function CartPage() {
-  const {
-    cart,
-    loading,
-    increaseQty,
-    decreaseQty,
-    removeItem,
-  } = useCart();
-
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-
-  // Auto-select all items when cart loads
-  useEffect(() => {
-    if (cart.length > 0) {
-      setSelectedItems(new Set(cart.map((item: CartItem) => item.id)));
-    }
-  }, [cart]);
-
-  const toggleSelectAll = () => {
-    if (selectedItems.size === cart.length) {
-      setSelectedItems(new Set());
-    } else {
-      setSelectedItems(new Set(cart.map((item: CartItem) => item.id)));
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.name && formData.email && formData.message) {
+      setLoading(true);
+      setTimeout(() => {
+        setLoading(false);
+        setSubmitted(true);
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          subject: "General Inquiry",
+          message: "",
+        });
+      }, 800);
     }
   };
-
-  const toggleItem = (id: string) => {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedItems(newSelected);
-  };
-
-  // Get selected items
-  const selectedCartItems = useMemo(() => {
-    return cart.filter((item: CartItem) => selectedItems.has(item.id));
-  }, [cart, selectedItems]);
-
-  // Calculate total quantity
-  const totalQuantity = useMemo(() => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
-  }, [cart]);
-
-  // Calculate selected quantity
-  const selectedQuantity = useMemo(() => {
-    return selectedCartItems.reduce((sum, item) => sum + item.quantity, 0);
-  }, [selectedCartItems]);
-
-  // Separate free delivery and paid delivery items
-  const { freeDeliveryItems, paidDeliveryItems } = useMemo(() => {
-    const free = selectedCartItems.filter((item: CartItem) => (item.deliveryCharge ?? 0) === 0);
-    const paid = selectedCartItems.filter((item: CartItem) => (item.deliveryCharge ?? 0) > 0);
-    return { freeDeliveryItems: free, paidDeliveryItems: paid };
-  }, [selectedCartItems]);
-
-  // Calculate subtotals
-  const freeDeliverySubtotal = useMemo(() => {
-    return freeDeliveryItems.reduce((total: number, item: CartItem) => {
-      const price = item.isOnSale ? item.salePrice ?? item.price : item.price;
-      return total + price * item.quantity;
-    }, 0);
-  }, [freeDeliveryItems]);
-
-  const paidDeliverySubtotal = useMemo(() => {
-    return paidDeliveryItems.reduce((total: number, item: CartItem) => {
-      const price = item.isOnSale ? item.salePrice ?? item.price : item.price;
-      return total + price * item.quantity;
-    }, 0);
-  }, [paidDeliveryItems]);
-
-  // 🔥 FIX: Delivery charge - per item, NOT multiplied by quantity
-  const totalDeliveryCharge = useMemo(() => {
-    return selectedCartItems.reduce((total: number, item: CartItem) => {
-      const charge = item.deliveryCharge ?? 0;
-      // 🔥 Just add the delivery charge once per item (not × quantity)
-      return total + charge;
-    }, 0);
-  }, [selectedCartItems]);
-
-  // Calculate items subtotal
-  const itemsSubtotal = freeDeliverySubtotal + paidDeliverySubtotal;
-  const grandTotal = itemsSubtotal + totalDeliveryCharge;
-
-  const isAllSelected = cart.length > 0 && selectedItems.size === cart.length;
-  const hasSelected = selectedItems.size > 0;
-  const hasDeliveryCharge = selectedCartItems.some((item: CartItem) => (item.deliveryCharge ?? 0) > 0);
-
-  // Handle quantity with loading state
-  const handleIncreaseQty = async (id: string) => {
-    setUpdatingId(id);
-    try {
-      await increaseQty(id);
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const handleDecreaseQty = async (id: string) => {
-    setUpdatingId(id);
-    try {
-      await decreaseQty(id);
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  // Remove with confirmation
-  const handleRemoveItem = (id: string) => {
-    if (confirm("Remove this product from your cart?")) {
-      removeItem(id);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-14 h-14 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-5"></div>
-          <p className="text-gray-500">Loading Cart...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (cart.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-6">
-        <div className="text-center">
-          <div className="w-32 h-32 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <HiOutlineShoppingBag className="text-6xl text-gray-300" />
-          </div>
-          <h1 className="text-4xl font-bold">Your Cart is Empty</h1>
-          <p className="text-gray-500 mt-3">Looks like you haven't added anything yet.</p>
-          <Link
-            href="/shop"
-            className="inline-flex items-center gap-2 mt-8 bg-black text-white px-8 py-4 rounded-full hover:bg-gray-800 hover:scale-105 transition-all duration-300"
-          >
-            <HiArrowLeft />
-            Continue Shopping
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-14 min-h-screen bg-gray-50/50">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold">Shopping Cart</h1>
-          <p className="text-gray-500 mt-1">
-            {totalQuantity} {totalQuantity === 1 ? 'item' : 'items'} in your cart
-          </p>
+    <main className="bg-white dark:bg-[#070707] text-zinc-900 dark:text-white min-h-screen transition-colors duration-300">
+      
+      {/* ===== 1. HERO SECTION (Premium Gray Theme) ===== */}
+      <section className="relative bg-zinc-100 dark:bg-[#121212] text-zinc-900 dark:text-white py-16 sm:py-24 border-b border-zinc-200 dark:border-zinc-800/80 overflow-hidden">
+        {/* Subtle Ambient Accent */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          
+          {/* Small Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-[0.3em] mb-4"
+          >
+            <Sparkles className="w-3.5 h-3.5 fill-amber-500" />
+            <span>GET IN TOUCH WITH US</span>
+          </motion.div>
+
+          {/* Main Title */}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight"
+          >
+            Contact <span className="text-amber-500">ENDER</span>
+          </motion.h1>
+
+          {/* Supporting Sub-Headline */}
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="mt-3 text-2xl sm:text-3xl font-extrabold uppercase text-amber-600 dark:text-amber-400 tracking-wider"
+          >
+            We're Here To Help
+          </motion.h2>
+
+          {/* Hero Paragraph */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mt-4 text-zinc-600 dark:text-zinc-300 text-base sm:text-lg max-w-2xl mx-auto font-medium leading-relaxed"
+          >
+            Have a question about an order, custom Muay Thai gear, sizing, or wholesale distribution? Our dedicated customer service team is available 24/7.
+          </motion.p>
         </div>
-        <Link
-          href="/shop"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-black transition"
-        >
-          <HiArrowLeft />
-          Continue Shopping
-        </Link>
-      </div>
+      </section>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Cart Items */}
-        <div className="lg:col-span-2">
-          {/* Select All */}
-          {cart.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4 flex items-center justify-between">
-              <button
-                onClick={toggleSelectAll}
-                className="flex items-center gap-3 text-sm font-medium hover:text-black transition"
-              >
-                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition ${isAllSelected
-                    ? 'bg-black border-black'
-                    : 'border-gray-300 hover:border-gray-400'
-                  }`}>
-                  {isAllSelected && (
-                    <HiCheck className="text-white text-sm" />
-                  )}
-                </div>
-                Select All ({totalQuantity} items)
-              </button>
-
-              <span className="text-sm text-gray-400">
-                {selectedQuantity} selected
-              </span>
-            </div>
-          )}
-
-          {/* Cart Items List */}
-          <div className="space-y-4">
-            <AnimatePresence>
-              {cart.map((item: CartItem) => {
-                const isSelected = selectedItems.has(item.id);
-                const price = item.isOnSale ? item.salePrice ?? item.price : item.price;
-                const deliveryCharge = item.deliveryCharge ?? 0;
-                const isFreeDelivery = deliveryCharge === 0;
-                // 🔥 FIX: Delivery charge is per item, NOT × quantity
-                const itemDeliveryTotal = deliveryCharge; // Just once per item
-                const itemTotal = price * item.quantity;
-                const isUpdating = updatingId === item.id;
-                const isLowStock = item.stock < 5;
-
-                return (
-                  <motion.div
-                    key={item.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -100 }}
-                    className={`bg-white rounded-2xl border-2 transition-all duration-300 p-4 sm:p-5 ${isSelected
-                        ? 'border-black shadow-lg shadow-black/5'
-                        : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      {/* Select Checkbox */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleItem(item.id);
-                        }}
-                        className="mt-1 shrink-0"
-                      >
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition ${isSelected
-                            ? 'bg-black border-black'
-                            : 'border-gray-300 hover:border-gray-400'
-                          }`}>
-                          {isSelected && (
-                            <HiCheck className="text-white text-sm" />
-                          )}
-                        </div>
-                      </button>
-
-                      {/* Product Image */}
-                      <Link href={`/shop/${item.productId}`} className="shrink-0">
-                        <img
-                          src={item.image || "/placeholder.png"}
-                          alt={item.name}
-                          className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl object-contain bg-gray-50 hover:scale-105 transition"
-                        />
-                      </Link>
-
-                      {/* Product Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <Link href={`/shop/${item.productId}`}>
-                              <h2 className="text-base sm:text-lg font-bold hover:text-gray-600 transition truncate">
-                                {item.name}
-                              </h2>
-                            </Link>
-
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              <span className="px-2.5 py-0.5 rounded-full bg-gray-100 text-xs">
-                                {item.color}
-                              </span>
-                              <span className="px-2.5 py-0.5 rounded-full bg-gray-100 text-xs">
-                                {item.size}
-                              </span>
-                              {!isFreeDelivery && (
-                                <span className="px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-medium flex items-center gap-1">
-                                  <FaTruck className="text-[10px]" />
-                                  Delivery: Rs. {deliveryCharge}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Low stock warning */}
-                            {isLowStock && (
-                              <p className="text-red-500 text-xs font-medium mt-2">
-                                Only {item.stock} left in stock!
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Price */}
-                          <div className="text-right shrink-0">
-                            {item.isOnSale ? (
-                              <div>
-                                <span className="text-lg sm:text-xl font-bold text-red-600">
-                                  Rs. {item.salePrice?.toLocaleString()}
-                                </span>
-                                <span className="text-gray-400 line-through text-sm ml-2">
-                                  Rs. {item.price.toLocaleString()}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-lg sm:text-xl font-bold">
-                                Rs. {item.price.toLocaleString()}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Bottom Controls */}
-                        <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
-                          {/* Quantity buttons */}
-                          <div className="flex items-center border rounded-xl overflow-hidden">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDecreaseQty(item.id);
-                              }}
-                              disabled={isUpdating || item.quantity <= 1}
-                              className="w-9 h-9 sm:w-10 sm:h-10 hover:bg-gray-100 flex items-center justify-center transition disabled:opacity-40 disabled:hover:bg-transparent"
-                            >
-                              <HiOutlineMinus className="text-sm" />
-                            </button>
-
-                            <div className="w-10 sm:w-14 text-center font-semibold text-sm">
-                              {isUpdating ? (
-                                <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto"></div>
-                              ) : (
-                                item.quantity
-                              )}
-                            </div>
-
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleIncreaseQty(item.id);
-                              }}
-                              disabled={isUpdating || item.quantity >= item.stock}
-                              className="w-9 h-9 sm:w-10 sm:h-10 hover:bg-gray-100 flex items-center justify-center transition disabled:opacity-40 disabled:hover:bg-transparent"
-                            >
-                              <HiOutlinePlus className="text-sm" />
-                            </button>
-                          </div>
-
-                          <div className="text-right">
-                            <p className="text-gray-400 text-xs">Item Total</p>
-                            <span className="font-bold text-sm sm:text-base">
-                              Rs. {itemTotal.toLocaleString()}
-                            </span>
-                            {!isFreeDelivery && (
-                              <p className="text-xs text-gray-400">
-                                + Delivery: Rs. {itemDeliveryTotal.toLocaleString()}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Remove button */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveItem(item.id);
-                            }}
-                            className="text-red-500 hover:text-red-700 transition p-1"
-                          >
-                            <HiOutlineTrash className="text-lg" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        {/* Order Summary */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-24 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-            <h2 className="text-xl font-bold mb-5">Order Summary</h2>
-
-            {!hasSelected ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <HiOutlineShoppingBag className="text-3xl text-gray-300" />
-                </div>
-                <p className="text-gray-500 text-sm">Select items to checkout</p>
+      {/* ===== 2. MAIN CONTENT SECTION ===== */}
+      <section className="py-16 sm:py-24">
+        <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8">
+          
+          {/* Top 3 Info Cards Grid */}
+          <div className="grid sm:grid-cols-3 gap-6 mb-16">
+            
+            {/* EMAIL CARD */}
+            <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 shadow-lg hover:border-amber-500/50 transition">
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 text-amber-500 w-fit mb-5">
+                <Mail className="w-6 h-6" />
               </div>
-            ) : (
-              <>
-                {/* Free Delivery Items */}
-                {freeDeliveryItems.length > 0 && (
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-green-600 mb-2">
-                      <span>🎁 Free Delivery Items</span>
-                      <span className="text-xs font-normal text-gray-400">
-                        ({freeDeliveryItems.reduce((sum, item) => sum + item.quantity, 0)} items)
-                      </span>
-                    </div>
-                    <div className="space-y-1.5 pl-2 border-l-2 border-green-200">
-                      {freeDeliveryItems.map((item: CartItem) => {
-                        const price = item.isOnSale ? item.salePrice ?? item.price : item.price;
-                        return (
-                          <div key={item.id} className="flex justify-between text-sm">
-                            <span className="text-gray-600 truncate">
-                              {item.name} × {item.quantity}
-                            </span>
-                            <span className="font-medium text-green-600">
-                              Rs. {(price * item.quantity).toLocaleString()}
-                            </span>
-                          </div>
-                        );
-                      })}
-                      <div className="flex justify-between text-sm font-semibold pt-1 border-t border-green-100">
-                        <span>Subtotal</span>
-                        <span className="text-green-600">Rs. {freeDeliverySubtotal.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-sm text-green-600">
-                        <span>Delivery</span>
-                        <span className="font-medium">FREE</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              <h3 className="text-xl font-black uppercase mb-1">Email Us</h3>
+              <p className="text-xs text-zinc-500 mb-3 font-semibold">Direct Customer Support</p>
+              <a
+                href="mailto:enderexclusive@gmail.com"
+                className="text-base font-bold text-amber-600 dark:text-amber-400 hover:underline block break-all"
+              >
+                enderexclusive@gmail.com
+              </a>
+            </div>
 
-                {/* Paid Delivery Items */}
-                {paidDeliveryItems.length > 0 && (
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-orange-600 mb-2">
-                      <FaTruck className="text-sm" />
-                      Standard Delivery Items
-                      <span className="text-xs font-normal text-gray-400">
-                        ({paidDeliveryItems.reduce((sum, item) => sum + item.quantity, 0)} items)
-                      </span>
-                    </div>
-                    <div className="space-y-1.5 pl-2 border-l-2 border-orange-200">
-                      {paidDeliveryItems.map((item: CartItem) => {
-                        const price = item.isOnSale ? item.salePrice ?? item.price : item.price;
-                        // 🔥 FIX: Delivery is per item, not × quantity
-                        const itemDelivery = item.deliveryCharge ?? 0;
-                        return (
-                          <div key={item.id}>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600 truncate">
-                                {item.name} × {item.quantity}
-                              </span>
-                              <span className="font-medium">
-                                Rs. {(price * item.quantity).toLocaleString()}
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-400 pl-4">
-                              <span>Delivery: Rs.{item.deliveryCharge}</span>
-                              <span>Rs. {itemDelivery.toLocaleString()}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      <div className="flex justify-between text-sm font-semibold pt-1 border-t border-orange-100">
-                        <span>Subtotal</span>
-                        <span>Rs. {paidDeliverySubtotal.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+            {/* PHONE & WHATSAPP CARD */}
+            <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 shadow-lg hover:border-amber-500/50 transition">
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-500 w-fit mb-5">
+                <FaWhatsapp className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-black uppercase mb-1">Phone & WhatsApp</h3>
+              <p className="text-xs text-zinc-500 mb-3 font-semibold">24/7 Direct Ordering</p>
+              <a
+                href="https://wa.me/94701813098"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-base font-bold text-emerald-600 dark:text-emerald-400 hover:underline block"
+              >
+                +94 70 181 3098
+              </a>
+            </div>
 
-                <hr className="my-4" />
+            {/* WAREHOUSE ADDRESS CARD */}
+            <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 shadow-lg hover:border-amber-500/50 transition">
+              <div className="p-3.5 rounded-2xl bg-blue-500/10 text-blue-500 w-fit mb-5">
+                <MapPin className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-black uppercase mb-1">Warehouse Address</h3>
+              <p className="text-xs text-zinc-500 mb-3 font-semibold">HQ & Dispatch Hub</p>
+              <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                Ender Warehouse, 26/20, Gemunu Road, Attidiya, Dehiwala, 10350, Sri Lanka
+              </p>
+            </div>
 
-                {/* Grand Total Breakdown */}
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Items Subtotal</span>
-                    <span className="font-medium">
-                      Rs. {itemsSubtotal.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {hasDeliveryCharge && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Total Delivery</span>
-                      <span className="font-medium text-orange-600">
-                        Rs. {totalDeliveryCharge.toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <hr className="my-4" />
-
-                {/* Total */}
-                <div className="flex justify-between text-xl font-bold">
-                  <span>Grand Total</span>
-                  <span>Rs. {grandTotal.toLocaleString()}</span>
-                </div>
-
-                {/* Delivery Charges Breakdown */}
-                {hasDeliveryCharge && (
-                  <div className="mt-3 bg-orange-50 border border-orange-200 rounded-xl p-3">
-                    <p className="text-orange-700 text-xs font-medium mb-2">
-                      Delivery Charges Breakdown
-                    </p>
-                    <div className="space-y-1">
-                      {paidDeliveryItems.map((item: CartItem) => {
-                        const charge = item.deliveryCharge ?? 0;
-                        return (
-                          <div key={item.id} className="flex justify-between text-xs text-gray-600">
-                            <span className="truncate">
-                              {item.name}
-                            </span>
-                            <span>
-                              Rs. {charge}
-                            </span>
-                          </div>
-                        );
-                      })}
-                      <div className="flex justify-between text-xs font-semibold pt-1 border-t border-orange-200">
-                        <span>Total Delivery</span>
-                        <span>Rs. {totalDeliveryCharge.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Checkout Button */}
-                <Link
-                  href={hasSelected ? "/checkout" : "#"}
-                  onClick={(e) => {
-                    if (!hasSelected) {
-                      e.preventDefault();
-                    }
-                  }}
-                  className={`mt-5 w-full h-12 rounded-xl flex items-center justify-center font-semibold transition ${hasSelected
-                      ? 'bg-black text-white hover:bg-gray-800'
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    }`}
-                >
-                  Checkout ({selectedQuantity} items)
-                </Link>
-
-                <div className="mt-5 pt-4 border-t space-y-2 text-xs text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <FaShieldAlt />
-                    Secure Checkout
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FaClock />
-                    Fast Delivery
-                  </div>
-                </div>
-              </>
-            )}
           </div>
+
+          {/* Form & Map 2-Column Section */}
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+            
+            {/* LEFT: WORKING INTERACTIVE CONTACT FORM */}
+            <div className="p-8 sm:p-12 rounded-3xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 shadow-xl">
+              <div className="mb-8">
+                <h2 className="text-3xl font-black uppercase tracking-tight">Send Us A Message</h2>
+                <p className="text-sm text-zinc-500 mt-2 font-medium">
+                  Fill out the form below and our team will get back to you within 24 hours.
+                </p>
+              </div>
+
+              {submitted ? (
+                <div className="p-6 rounded-2xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-400 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="w-6 h-6 shrink-0 text-emerald-400" />
+                    <h4 className="text-lg font-black uppercase">Message Sent Successfully!</h4>
+                  </div>
+                  <p className="text-sm text-emerald-200 font-medium leading-relaxed">
+                    Thank you for reaching out to Ender Exclusive. We have received your message and will respond shortly.
+                  </p>
+                  <button
+                    onClick={() => setSubmitted(false)}
+                    className="mt-4 text-xs font-black uppercase tracking-wider text-emerald-400 underline cursor-pointer"
+                  >
+                    Send Another Message
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  
+                  {/* Name Input */}
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
+                      Your Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="e.g. John Doe"
+                      className="w-full px-4 py-3.5 bg-white dark:bg-[#18181B] border border-zinc-300 dark:border-zinc-700/80 rounded-2xl text-zinc-900 dark:text-white placeholder-zinc-400 font-medium outline-none focus:border-amber-500 transition text-sm"
+                    />
+                  </div>
+
+                  {/* Email & Phone Grid */}
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        placeholder="enderexclusive@gmail.com"
+                        className="w-full px-4 py-3.5 bg-white dark:bg-[#18181B] border border-zinc-300 dark:border-zinc-700/80 rounded-2xl text-zinc-900 dark:text-white placeholder-zinc-400 font-medium outline-none focus:border-amber-500 transition text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
+                        Phone / WhatsApp
+                      </label>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        placeholder="+94 70 181 3098"
+                        className="w-full px-4 py-3.5 bg-white dark:bg-[#18181B] border border-zinc-300 dark:border-zinc-700/80 rounded-2xl text-zinc-900 dark:text-white placeholder-zinc-400 font-medium outline-none focus:border-amber-500 transition text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Subject Dropdown */}
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
+                      Inquiry Subject
+                    </label>
+                    <select
+                      value={formData.subject}
+                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                      className="w-full px-4 py-3.5 bg-white dark:bg-[#18181B] border border-zinc-300 dark:border-zinc-700/80 rounded-2xl text-zinc-900 dark:text-white font-medium outline-none focus:border-amber-500 transition text-sm"
+                    >
+                      <option value="General Inquiry">General Inquiry</option>
+                      <option value="Order Status">Order Status & Tracking</option>
+                      <option value="Custom Muay Thai Shorts">Custom Muay Thai Shorts</option>
+                      <option value="Wholesale & Distribution">Wholesale & Distribution</option>
+                      <option value="Size Exchange">Size Exchange</option>
+                    </select>
+                  </div>
+
+                  {/* Message Input */}
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
+                      Message *
+                    </label>
+                    <textarea
+                      rows={5}
+                      required
+                      value={formData.message}
+                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      placeholder="Write your message here..."
+                      className="w-full px-4 py-3.5 bg-white dark:bg-[#18181B] border border-zinc-300 dark:border-zinc-700/80 rounded-2xl text-zinc-900 dark:text-white placeholder-zinc-400 font-medium outline-none focus:border-amber-500 transition text-sm"
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-4 bg-amber-400 hover:bg-amber-300 text-black font-black text-sm uppercase tracking-wider rounded-2xl transition duration-200 cursor-pointer flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <span>Sending Message...</span>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>Send Message</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {/* RIGHT: INTERACTIVE GOOGLE MAP EMBED & WAREHOUSE LOCATION */}
+            <div className="space-y-6">
+              <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-2xl font-black uppercase">Ender Warehouse Location</h3>
+                    <p className="text-xs text-zinc-500 mt-1 font-semibold">Dehiwala, Sri Lanka</p>
+                  </div>
+                  <span className="px-3.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-mono font-bold">
+                    ACTIVE HUB
+                  </span>
+                </div>
+
+                {/* Google Map Embed centered on Attidiya, Dehiwala, Sri Lanka */}
+                <div className="relative w-full h-[380px] rounded-2xl overflow-hidden border border-zinc-300 dark:border-zinc-700 shadow-md">
+                  <iframe
+                    title="Ender Warehouse Location"
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15844.757833075253!2d79.8755675!3d6.8450123!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae25a58e65ef5e9%3A0x6b44a0e1c2d0f52b!2sAttidiya%2C%20Dehiwala-Mount%20Lavinia!5e0!3m2!1sen!2slk!4v1700000000000!5m2!1sen!2slk"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen={false}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+
+                <div className="mt-6 p-4 rounded-2xl bg-white dark:bg-[#18181B] border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400 font-semibold space-y-1">
+                  <p>📍 <strong>Address:</strong> Ender Warehouse, 26/20, Gemunu Road, Attidiya, Dehiwala, 10350, Sri Lanka</p>
+                  <p>⏰ <strong>Warehouse Hours:</strong> Monday – Saturday: 9:00 AM – 6:00 PM</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
         </div>
-      </div>
+      </section>
+
     </main>
   );
 }
