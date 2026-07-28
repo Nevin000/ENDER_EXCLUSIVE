@@ -14,7 +14,7 @@ export interface Order {
   total: number;
   paymentMethod: "cod" | "bank";
   paymentStatus: "pending" | "paid" | "failed";
-  orderStatus: "pending" | "pending_payment" | "processing" | "shipped" | "delivered" | "cancelled";
+  orderStatus: "pending" | "pending_payment" | "processing" | "delivered" | "cancelled";
   shippingAddress: {
     firstName: string;
     lastName: string;
@@ -34,6 +34,9 @@ export interface Order {
   };
   paymentProof?: string | null;
   trackingNumber?: string | null;
+  deliveryCompany?: string | null;
+  deliveryNotes?: string | null;
+  handoverDate?: string | null;
   orderDate: string;
   createdAt: string;
   updatedAt: string;

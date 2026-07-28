@@ -215,5 +215,31 @@ export const deleteOrder = async (orderId: string): Promise<void> => {
   }
 };
 
+// 🔥 Update Order Delivery & Tracking Details
+export const updateOrderDeliveryDetails = async (
+  orderId: string,
+  deliveryDetails: {
+    orderStatus?: Order["orderStatus"];
+    trackingNumber: string;
+    deliveryCompany: string;
+    deliveryNotes?: string;
+  }
+): Promise<void> => {
+  try {
+    const docRef = doc(db, COLLECTION_NAME, orderId);
+    await updateDoc(docRef, {
+      ...(deliveryDetails.orderStatus && { orderStatus: deliveryDetails.orderStatus }),
+      trackingNumber: deliveryDetails.trackingNumber,
+      deliveryCompany: deliveryDetails.deliveryCompany,
+      deliveryNotes: deliveryDetails.deliveryNotes || "",
+      handoverDate: new Date().toISOString(),
+      updatedAt: Timestamp.now(),
+    });
+  } catch (error) {
+    console.error("Error updating order delivery details:", error);
+    throw error;
+  }
+};
+
 // 🔥 Export Order type
 export type { Order };

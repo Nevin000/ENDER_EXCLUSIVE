@@ -14,6 +14,7 @@ export interface ProductImage {
 export interface ColorVariant {
   color: string;
   imageUrl: string;
+  images?: string[];
   sizes: ProductSize[];
 }
 
@@ -35,4 +36,11 @@ export interface Product {
   status: string;
   deliveryType: "free" | "charge";
   deliveryCharge: number;
+  slug?: string;
+  fashionTags?: string[];
+  gender?: "men" | "women" | "unisex";
+  season?: "summer" | "winter" | "spring" | "fall" | "all-season";
+  occasion?: string;
+  style?: string;
 }
+

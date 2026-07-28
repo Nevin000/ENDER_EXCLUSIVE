@@ -1,164 +1,173 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   FaFacebookF,
   FaInstagram,
   FaTiktok,
-  FaArrowRight,
+  FaWhatsapp,
 } from "react-icons/fa";
 
 export default function Footer() {
   return (
-    <footer className="bg-black text-white mt-32">
-      
-
-      {/* Main Footer */}
-      <div className="max-w-[1700px] mx-auto px-8 lg:px-12 py-20">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-14">
+    <footer className="bg-black text-white border-t border-zinc-800/80 mt-0">
+      {/* Main Footer Container (Matching Navbar padding & max-width) */}
+      <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-16">
           {/* Brand */}
-          <div>
-            <h2 className="text-5xl font-black tracking-[0.15em]">ENDER</h2>
+          <div className="space-y-5">
+            <Link href="/" className="inline-block group">
+              <Image
+                src="/images/ender_white_footer_logo.png"
+                alt="Ender Exclusive"
+                width={640}
+                height={220}
+                className="h-28 sm:h-36 md:h-40 lg:h-44 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              />
+            </Link>
 
-            <p className="tracking-[0.5em] text-xs text-gray-500 mt-2">
-              EXCLUSIVE
-            </p>
-
-            <p className="mt-6 text-gray-400 leading-relaxed">
-              Premium streetwear, fightwear and sportswear crafted for athletes,
-              fighters and modern lifestyles.
+            <p className="text-zinc-300 text-base sm:text-lg leading-relaxed font-medium">
+              Premium streetwear, fightwear, and sportswear crafted for athletes, fighters, and modern confidence.
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-xl font-bold mb-6">Quick Links</h3>
+            <h3 className="text-xl sm:text-2xl font-black uppercase tracking-wider mb-6 text-white">Quick Navigation</h3>
 
-            <ul className="space-y-4 text-gray-400">
+            <ul className="space-y-4 text-zinc-300 font-semibold text-base sm:text-lg">
               <li>
-                <Link href="/" className="hover:text-white transition">
+                <Link href="/" className="hover:text-amber-400 transition">
                   Home
                 </Link>
               </li>
-
               <li>
-                <Link href="/shop" className="hover:text-white transition">
-                  Shop
+                <Link href="/shop" className="hover:text-amber-400 transition">
+                  Shop All Products
                 </Link>
               </li>
-
               <li>
-                <Link href="/on-sale" className="hover:text-white transition">
+                <Link href="/on-sale" className="hover:text-red-500 transition font-extrabold text-red-500">
                   On Sale
                 </Link>
               </li>
-
               <li>
-                <Link
-                  href="/featured-looks"
-                  className="hover:text-white transition"
-                >
-                  Featured Looks
+                <Link href="/featured-looks" className="hover:text-amber-400 transition">
+                  Featured Looks & Editorial
+                </Link>
+              </li>
+              <li>
+                <Link href="/about" className="hover:text-amber-400 transition">
+                  About Brand
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-amber-400 transition">
+                  Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/return-and-exchange-policy-ender-wear" className="hover:text-amber-400 transition">
+                  Return & Exchange Policy
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Categories */}
+          {/* Collections */}
           <div>
-            <h3 className="text-xl font-bold mb-6">Collections</h3>
+            <h3 className="text-xl sm:text-2xl font-black uppercase tracking-wider mb-6 text-white">Collections</h3>
 
-            <ul className="space-y-4 text-gray-400">
-              <li className="hover:text-white transition cursor-pointer">
-                Men's Wear
+            <ul className="space-y-4 text-zinc-300 font-semibold text-base sm:text-lg">
+              <li>
+                <Link href="/shop/mens" className="hover:text-amber-400 transition">
+                  Men's Streetwear
+                </Link>
               </li>
-
-              <li className="hover:text-white transition cursor-pointer">
-                Fight Wear
+              <li>
+                <Link href="/shop/fightwear" className="hover:text-amber-400 transition">
+                  Pro Combat Fight Wear
+                </Link>
               </li>
-
-              <li className="hover:text-white transition cursor-pointer">
-                Sports Wear
+              <li>
+                <Link href="/shop/sportswear" className="hover:text-amber-400 transition">
+                  Athletic Sports Wear
+                </Link>
+              </li>
+              <li>
+                <Link href="/featured-looks/fighters" className="hover:text-amber-400 transition">
+                  Fighter Ambassadors
+                </Link>
               </li>
             </ul>
           </div>
 
           {/* Contact & Social */}
           <div>
-            <h3 className="text-xl font-bold mb-6">Connect</h3>
+            <h3 className="text-xl sm:text-2xl font-black uppercase tracking-wider mb-6 text-white">Connect & Orders</h3>
 
-            <p className="text-gray-400 mb-3">info@enderexclusive.com</p>
+            <p className="text-white font-bold text-base sm:text-lg mb-2">enderexclusive@gmail.com</p>
+            <p className="text-zinc-300 text-base sm:text-lg mb-5 font-medium leading-snug">
+              Ender Warehouse, 26/20, Gemunu Road, Attidiya, Dehiwala, 10350, Sri Lanka
+            </p>
 
-            <p className="text-gray-400 mb-8">Colombo, Sri Lanka</p>
+            {/* WhatsApp Order Pill */}
+            <a
+              href="https://wa.me/94701813098"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 px-5 py-3 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 rounded-full text-emerald-400 text-sm sm:text-base font-black uppercase tracking-wider mb-6 transition shadow-lg"
+            >
+              <FaWhatsapp className="w-5 h-5 text-emerald-400" />
+              <span>WhatsApp: +94 70 181 3098</span>
+            </a>
 
-            <div className="flex gap-4">
+            {/* Social Icons */}
+            <div className="flex items-center gap-3.5">
               <a
-                href="#"
-                className="
-                  w-12
-                  h-12
-                  rounded-full
-                  bg-gray-900
-                  flex
-                  items-center
-                  justify-center
-                  hover:bg-white
-                  hover:text-black
-                  transition
-                "
+                href="https://www.instagram.com/ender_exclusive/?hl=en"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-12 h-12 rounded-full bg-[#161616] border border-zinc-800 text-zinc-300 flex items-center justify-center hover:bg-amber-400 hover:text-black transition duration-200"
+                aria-label="Instagram"
               >
-                <FaInstagram />
+                <FaInstagram className="w-6 h-6" />
               </a>
 
               <a
-                href="#"
-                className="
-                  w-12
-                  h-12
-                  rounded-full
-                  bg-gray-900
-                  flex
-                  items-center
-                  justify-center
-                  hover:bg-white
-                  hover:text-black
-                  transition
-                "
+                href="https://www.facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-12 h-12 rounded-full bg-[#161616] border border-zinc-800 text-zinc-300 flex items-center justify-center hover:bg-amber-400 hover:text-black transition duration-200"
+                aria-label="Facebook"
               >
-                <FaFacebookF />
+                <FaFacebookF className="w-6 h-6" />
               </a>
 
               <a
-                href="#"
-                className="
-                  w-12
-                  h-12
-                  rounded-full
-                  bg-gray-900
-                  flex
-                  items-center
-                  justify-center
-                  hover:bg-white
-                  hover:text-black
-                  transition
-                "
+                href="https://www.tiktok.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-12 h-12 rounded-full bg-[#161616] border border-zinc-800 text-zinc-300 flex items-center justify-center hover:bg-amber-400 hover:text-black transition duration-200"
+                aria-label="TikTok"
               >
-                <FaTiktok />
+                <FaTiktok className="w-6 h-6" />
               </a>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Bar */}
-      <div className="border-t border-gray-800">
-        <div className="max-w-[1700px] mx-auto px-8 lg:px-12 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-gray-500 text-sm">
-            © 2026 Ender Exclusive. All Rights Reserved.
+      {/* Bottom Copyright Bar */}
+      <div className="border-t border-zinc-800/80 bg-[#070707]">
+        <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-zinc-400 text-sm sm:text-base font-semibold">
+            © 2026 Ender Exclusive. All Rights Reserved. Built for Champions.
           </p>
 
-          <div className="flex gap-6 text-sm text-gray-500">
-            <Link href="#">Privacy Policy</Link>
-
-            <Link href="#">Terms & Conditions</Link>
+          <div className="flex items-center gap-6 text-sm sm:text-base font-bold text-zinc-400 flex-wrap">
+            <Link href="/privacy" className="hover:text-zinc-200 transition">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-zinc-200 transition">Terms & Conditions</Link>
+            <Link href="/return-and-exchange-policy-ender-wear" className="hover:text-zinc-200 transition">Return Policy</Link>
           </div>
         </div>
       </div>

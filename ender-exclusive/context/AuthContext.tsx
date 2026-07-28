@@ -1,101 +1,100 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/firebase/config";
+import { auth } from "@/firebase/config";
+import { fetchUserRecord, UserRecord } from "@/lib/authService";
+
+// ─── Types ────────────────────────────────────────────────
 
 interface AuthContextType {
   user: User | null;
+  record: UserRecord | null;
   role: string | null;
+  status: string | null;
   loading: boolean;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  isUser: boolean;
 }
+
+// ─── Context ──────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  record: null,
   role: null,
+  status: null,
   loading: true,
+  isAuthenticated: false,
+  isAdmin: false,
+  isUser: false,
 });
 
-const ROLE_CACHE_KEY = "ender_user_role";
-const ROLE_CACHE_UID_KEY = "ender_user_uid";
+// ─── Provider ─────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // 🔥 Pre-load cached role so pages render instantly without waiting for Firestore
-  const getCachedRole = () => {
-    if (typeof window === "undefined") return null;
-    try {
-      return sessionStorage.getItem(ROLE_CACHE_KEY);
-    } catch {
-      return null;
-    }
-  };
-
   const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<string | null>(getCachedRole);
+  const [record, setRecord] = useState<UserRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const isMounted = useRef(true);
 
-  const fetchAndCacheRole = useCallback(async (currentUser: User) => {
-    // 🔥 If same user and role is already cached, skip Firestore fetch
-    try {
-      const cachedUid = sessionStorage.getItem(ROLE_CACHE_UID_KEY);
-      const cachedRole = sessionStorage.getItem(ROLE_CACHE_KEY);
-      if (cachedUid === currentUser.uid && cachedRole) {
-        setRole(cachedRole);
-        return;
-      }
-    } catch {
-      // sessionStorage not available
-    }
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
-    // 🔥 Fetch from Firestore only when needed
-    try {
-      const userRef = doc(db, "users", currentUser.uid);
-      const userSnap = await getDoc(userRef);
-      const fetchedRole = userSnap.exists() ? userSnap.data().role : "user";
-      setRole(fetchedRole);
-
-      // Cache it for this session
-      try {
-        sessionStorage.setItem(ROLE_CACHE_KEY, fetchedRole);
-        sessionStorage.setItem(ROLE_CACHE_UID_KEY, currentUser.uid);
-      } catch {
-        // sessionStorage not available
-      }
-    } catch (error) {
-      console.error("Error loading user role:", error);
-      setRole("user");
+  const loadRecord = useCallback(async (currentUser: User) => {
+    const userRecord = await fetchUserRecord(currentUser.uid);
+    if (isMounted.current) {
+      setRecord(userRecord);
     }
   }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!isMounted.current) return;
+
       setUser(currentUser);
 
       if (currentUser) {
-        await fetchAndCacheRole(currentUser);
+        await loadRecord(currentUser);
       } else {
-        setRole(null);
-        // Clear cache on logout
-        try {
-          sessionStorage.removeItem(ROLE_CACHE_KEY);
-          sessionStorage.removeItem(ROLE_CACHE_UID_KEY);
-        } catch {
-          // ignore
-        }
+        setRecord(null);
       }
 
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+      }
     });
 
     return () => unsubscribe();
-  }, [fetchAndCacheRole]);
+  }, [loadRecord]);
+
+  const role = record?.role ?? null;
+  const status = record?.status ?? null;
+  const isAuthenticated = !!user;
+  const isAdmin = role === "admin";
+  const isUser = role === "user";
 
   return (
-    <AuthContext.Provider value={{ user, role, loading }}>
+    <AuthContext.Provider
+      value={{ user, record, role, status, loading, isAuthenticated, isAdmin, isUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
+
+// ─── Hook ─────────────────────────────────────────────────
 
 export const useAuth = () => useContext(AuthContext);
