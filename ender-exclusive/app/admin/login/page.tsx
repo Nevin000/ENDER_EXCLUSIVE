@@ -15,7 +15,7 @@ import {
   Shield,
 } from "lucide-react";
 
-import { loginAdminUser, logoutAdminUser } from "@/services/authService";
+import { loginAdminUser, logoutAdminUser, resetPassword } from "@/services/authService";
 import { validateUserAccess, getAdminLoginError } from "@/lib/authService";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 
@@ -45,13 +45,13 @@ function getLockoutData(): LockoutData {
 function saveLockoutData(data: LockoutData) {
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch {}
+  } catch { }
 }
 
 function clearLockoutData() {
   try {
     sessionStorage.removeItem(STORAGE_KEY);
-  } catch {}
+  } catch { }
 }
 
 function formatCountdown(ms: number): string {
@@ -150,6 +150,34 @@ export default function AdminLoginPage() {
     }
   }, []);
 
+  // ── 2FA & Password Reset State ───────────────────────────────────────────
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState("");
+
+  const [mfaResolver, setMfaResolver] = useState<any>(null);
+  const [mfaCode, setMfaCode] = useState("");
+
+  // ── Handle Admin Password Reset ──────────────────────────────────────────
+  const handleAdminResetPassword = async () => {
+    if (!resetEmail.trim()) {
+      setResetError("Please enter your admin email address.");
+      return;
+    }
+    try {
+      setResetLoading(true);
+      setResetError("");
+      await resetPassword(resetEmail.trim());
+      setResetSent(true);
+    } catch (err: any) {
+      setResetError("Failed to send reset email. Ensure the email is correct.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   // ── Handle Login ─────────────────────────────────────────────────────────
   const handleAdminLogin = async () => {
     if (isLocked) return;
@@ -185,6 +213,13 @@ export default function AdminLoginPage() {
     } catch (err: any) {
       const msg: string = err?.message || "";
       recordFailedAttempt();
+
+      if (err.code === "auth/multi-factor-auth-required") {
+        setMfaResolver(err);
+        setError("");
+        setLoading(false);
+        return;
+      }
 
       if (
         msg.includes("invalid-credential") ||
@@ -384,6 +419,22 @@ export default function AdminLoginPage() {
                 </button>
               </div>
 
+              {/* Forgot Password Link */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetEmail(email);
+                    setShowResetModal(true);
+                    setResetSent(false);
+                    setResetError("");
+                  }}
+                  className="text-xs text-amber-400 hover:text-amber-300 font-semibold transition"
+                >
+                  Forgot Admin Password?
+                </button>
+              </div>
+
               {/* Submit */}
               <button
                 onClick={handleAdminLogin}
@@ -404,9 +455,90 @@ export default function AdminLoginPage() {
               <div className="flex items-center justify-center gap-1.5 pt-1">
                 <Shield className="w-3.5 h-3.5 text-zinc-600" />
                 <p className="text-[11px] text-zinc-600 font-semibold">
-                  Protected · {MAX_ATTEMPTS} attempt limit · 15 min lockout
+                  Protected · {MAX_ATTEMPTS} attempt limit · 15 min lockout · 2FA Support
                 </p>
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── RESET PASSWORD MODAL ── */}
+        <AnimatePresence>
+          {showResetModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.95 }}
+                className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-4 shadow-2xl relative"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-black text-white uppercase tracking-wider">
+                    Reset Admin Password
+                  </h3>
+                  <button
+                    onClick={() => setShowResetModal(false)}
+                    className="text-zinc-500 hover:text-white transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {resetSent ? (
+                  <div className="space-y-4 text-center py-4">
+                    <p className="text-sm text-emerald-400 font-semibold">
+                      A password reset link has been sent to <strong>{resetEmail}</strong> via Firebase Auth.
+                    </p>
+                    <button
+                      onClick={() => setShowResetModal(false)}
+                      className="w-full py-3 bg-zinc-900 border border-zinc-800 text-white font-bold text-xs rounded-xl hover:bg-zinc-800 transition uppercase tracking-wider"
+                    >
+                      Close Window
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-xs text-zinc-400 leading-relaxed font-medium">
+                      Enter your administrative email address to receive a secure password reset link.
+                    </p>
+
+                    {resetError && (
+                      <div className="p-3 bg-red-950/80 border border-red-800 text-red-300 rounded-xl text-xs font-semibold">
+                        {resetError}
+                      </div>
+                    )}
+
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="Admin Email Address"
+                      className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm font-medium text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    />
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        onClick={() => setShowResetModal(false)}
+                        className="w-1/2 py-3 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white text-xs font-bold rounded-xl transition uppercase tracking-wider"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleAdminResetPassword}
+                        disabled={resetLoading}
+                        className="w-1/2 py-3 bg-amber-400 hover:bg-amber-300 text-black text-xs font-black rounded-xl transition uppercase tracking-wider disabled:opacity-50"
+                      >
+                        {resetLoading ? "Sending..." : "Send Reset Email"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
