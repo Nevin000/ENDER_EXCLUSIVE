@@ -75,11 +75,10 @@ function SortableImageRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group relative flex items-center justify-between gap-4 p-4 bg-white dark:bg-[#121212] border rounded-2xl shadow-sm transition hover:border-black dark:hover:border-amber-500/50 ${
-        isSelected
+      className={`group relative flex items-center justify-between gap-4 p-4 bg-white dark:bg-[#121212] border rounded-2xl shadow-sm transition hover:border-black dark:hover:border-amber-500/50 ${isSelected
           ? "border-amber-400 bg-amber-50/40 dark:bg-amber-950/20 dark:border-amber-500"
           : "border-zinc-200 dark:border-zinc-800"
-      }`}
+        }`}
     >
       {/* Left: Drag Handle & Selection & Thumbnail */}
       <div className="flex items-center gap-4 min-w-0">
@@ -132,11 +131,10 @@ function SortableImageRow({
               Item #{index + 1}
             </p>
             <span
-              className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                isVideo
+              className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${isVideo
                   ? "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300"
                   : "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
-              }`}
+                }`}
             >
               {isVideo ? "Video" : "Photo"}
             </span>
@@ -157,11 +155,10 @@ function SortableImageRow({
         <button
           type="button"
           onClick={() => onToggleStatus(item.id, item.status)}
-          className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
-            item.status === "published"
+          className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${item.status === "published"
               ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200"
               : "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-amber-200"
-          }`}
+            }`}
         >
           {item.status}
         </button>
@@ -345,9 +342,9 @@ export default function AdminFightersGalleryManager() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-10 pb-36 font-sans selection:bg-amber-300 selection:text-black dark:selection:bg-amber-600 dark:selection:text-white">
+    <div className="p-4 sm:p-6 w-full space-y-6 pb-20 font-sans selection:bg-amber-300 selection:text-black dark:selection:bg-amber-600 dark:selection:text-white">
       {/* Top Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#111111] dark:via-[#1A1A1A] dark:to-[#0D0D0D] border border-white/30 dark:border-[#2A2A2A]/50 shadow-2xl shadow-black/5 p-8 md:p-10">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#111111] dark:via-[#1A1A1A] dark:to-[#0D0D0D] border border-white/30 dark:border-[#2A2A2A]/50 shadow-2xl shadow-black/5 p-6 md:p-8">
         <div className="absolute -top-24 -right-24 w-72 h-72 bg-amber-400/20 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -420,22 +417,20 @@ export default function AdminFightersGalleryManager() {
                 <button
                   type="button"
                   onClick={() => setMediaTypeFilter("all")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                    mediaTypeFilter === "all"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${mediaTypeFilter === "all"
                       ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm"
                       : "text-zinc-500 hover:text-black dark:hover:text-white"
-                  }`}
+                    }`}
                 >
                   All ({items.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setMediaTypeFilter("image")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                    mediaTypeFilter === "image"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${mediaTypeFilter === "image"
                       ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm"
                       : "text-zinc-500 hover:text-black dark:hover:text-white"
-                  }`}
+                    }`}
                 >
                   <HiOutlinePhoto className="w-3.5 h-3.5" />
                   Photos
@@ -443,11 +438,10 @@ export default function AdminFightersGalleryManager() {
                 <button
                   type="button"
                   onClick={() => setMediaTypeFilter("video")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                    mediaTypeFilter === "video"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${mediaTypeFilter === "video"
                       ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm"
                       : "text-zinc-500 hover:text-black dark:hover:text-white"
-                  }`}
+                    }`}
                 >
                   <HiOutlineVideoCamera className="w-3.5 h-3.5" />
                   Videos

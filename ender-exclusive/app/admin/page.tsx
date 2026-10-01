@@ -331,9 +331,9 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto space-y-10 pb-36">
+    <div className="p-4 sm:p-6 w-full space-y-6 pb-20">
       {/* ===== 1. REALTIME DASHBOARD HEADER ===== */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#111111] dark:via-[#1A1A1A] dark:to-[#0D0D0D] border border-white/30 dark:border-[#2A2A2A]/50 shadow-2xl shadow-black/5 p-8 md:p-10">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#111111] dark:via-[#1A1A1A] dark:to-[#0D0D0D] border border-white/30 dark:border-[#2A2A2A]/50 shadow-2xl shadow-black/5 p-6 md:p-8">
         <div className="absolute -top-24 -right-24 w-72 h-72 bg-amber-400/20 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">

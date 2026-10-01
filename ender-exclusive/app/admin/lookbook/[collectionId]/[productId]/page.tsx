@@ -126,7 +126,7 @@ export default function ManualLookbookEditor({
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MatchingItem | null>(null);
-  
+
   // Form State
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
@@ -145,7 +145,7 @@ export default function ManualLookbookEditor({
 
         if (col) setCollection(col);
         if (prod) setProduct(prod);
-        
+
         if (styleDoc) {
           if (styleDoc.matchingItems) {
             const sortedItems = [...styleDoc.matchingItems].sort((a, b) => a.displayOrder - b.displayOrder);
@@ -299,7 +299,7 @@ export default function ManualLookbookEditor({
   const mainImg = product.images?.[0] || product.colorImages?.[0]?.url || "";
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 w-full space-y-6 pb-20 font-sans selection:bg-amber-300 selection:text-black dark:selection:bg-amber-600 dark:selection:text-white">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">

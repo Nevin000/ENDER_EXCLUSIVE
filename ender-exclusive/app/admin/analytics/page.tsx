@@ -452,7 +452,7 @@ export default function AnalyticsPage() {
 
       // Section 3: Prominent Final Monthly Income & Sales Audit Summary Box
       const finalY = (doc as any).lastAutoTable.finalY + 10;
-      
+
       // Draw Amber Highlight Box Background
       doc.setFillColor(245, 158, 11);
       doc.rect(14, finalY, 182, 38, "F");
@@ -556,7 +556,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-[1600px] mx-auto space-y-10 pb-36 font-sans">
+      <div className="p-4 sm:p-6 w-full space-y-6 pb-20 font-sans">
         <div className="relative bg-white/60 dark:bg-[#111111]/60 backdrop-blur-xl border border-white/20 dark:border-[#2A2A2A]/60 rounded-3xl p-16 text-center shadow-2xl shadow-black/5">
           <div className="w-16 h-16 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mx-auto mb-5" />
           <p className="text-base font-bold text-zinc-400 dark:text-zinc-500 tracking-widest uppercase">
@@ -568,7 +568,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-10 pb-36 font-sans selection:bg-amber-300 selection:text-black dark:selection:bg-amber-600 dark:selection:text-white">
+    <div className="p-4 sm:p-6 w-full space-y-6 pb-20 font-sans selection:bg-amber-300 selection:text-black dark:selection:bg-amber-600 dark:selection:text-white">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -585,7 +585,7 @@ export default function AnalyticsPage() {
       </AnimatePresence>
 
       {/* ===== 1. HEADER & DOWNLOAD REPORT SUITE ===== */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#111111] dark:via-[#1A1A1A] dark:to-[#0D0D0D] border border-white/30 dark:border-[#2A2A2A]/50 shadow-2xl shadow-black/5 p-8 md:p-10">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#111111] dark:via-[#1A1A1A] dark:to-[#0D0D0D] border border-white/30 dark:border-[#2A2A2A]/50 shadow-2xl shadow-black/5 p-6 md:p-8">
         <div className="absolute -top-24 -right-24 w-72 h-72 bg-amber-400/20 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col xl:flex-row xl:items-center justify-between gap-8">
@@ -655,11 +655,10 @@ export default function AnalyticsPage() {
               <button
                 key={y}
                 onClick={() => setSelectedYear(y)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                  selectedYear === y
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${selectedYear === y
                     ? "bg-amber-500 text-black shadow-md"
                     : "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                }`}
+                  }`}
               >
                 {y === "all" ? "All Time" : y}
               </button>
@@ -754,17 +753,15 @@ export default function AnalyticsPage() {
             <div className="flex items-center p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
               <button
                 onClick={() => setGraphType("linear")}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-black uppercase transition-all cursor-pointer ${
-                  graphType === "linear" ? "bg-amber-500 text-black shadow-md" : "text-zinc-400 hover:text-white"
-                }`}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black uppercase transition-all cursor-pointer ${graphType === "linear" ? "bg-amber-500 text-black shadow-md" : "text-zinc-400 hover:text-white"
+                  }`}
               >
                 Linear Trend Curve
               </button>
               <button
                 onClick={() => setGraphType("bar")}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-black uppercase transition-all cursor-pointer ${
-                  graphType === "bar" ? "bg-amber-500 text-black shadow-md" : "text-zinc-400 hover:text-white"
-                }`}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black uppercase transition-all cursor-pointer ${graphType === "bar" ? "bg-amber-500 text-black shadow-md" : "text-zinc-400 hover:text-white"
+                  }`}
               >
                 Bar Diagram
               </button>

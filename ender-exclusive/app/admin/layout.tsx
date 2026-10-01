@@ -15,16 +15,18 @@ export default function AdminLayout({
 
   return (
     <AdminAuthProvider>
-      {isLoginPage ? (
-        <>{children}</>
-      ) : (
-        <AdminGuard>
-          <div className="flex flex-col lg:flex-row bg-zinc-100 dark:bg-[#0A0A0A] min-h-screen">
-            <AdminSidebar />
-            <main className="flex-1 overflow-x-hidden min-w-0">{children}</main>
-          </div>
-        </AdminGuard>
-      )}
+      <div className="admin-font-override min-h-screen">
+        {isLoginPage ? (
+          <>{children}</>
+        ) : (
+          <AdminGuard>
+            <div className="flex flex-col lg:flex-row bg-zinc-100 dark:bg-[#0A0A0A] min-h-screen">
+              <AdminSidebar />
+              <main className="flex-1 overflow-x-hidden min-w-0">{children}</main>
+            </div>
+          </AdminGuard>
+        )}
+      </div>
     </AdminAuthProvider>
   );
 }

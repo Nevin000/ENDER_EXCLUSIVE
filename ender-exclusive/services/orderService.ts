@@ -1,6 +1,6 @@
 // services/orderService.ts
 
-import { db } from "@/firebase/config";
+import { auth, db } from "@/firebase/config";
 import {
   collection,
   addDoc,
@@ -15,6 +15,7 @@ import {
   Timestamp,
   increment,
   writeBatch,
+  runTransaction,
 } from "firebase/firestore";
 import { CartItem } from "@/types/cart";
 import { Order } from "@/types/order";
@@ -22,52 +23,46 @@ import { Order } from "@/types/order";
 const COLLECTION_NAME = "orders";
 const PRODUCTS_COLLECTION = "products";
 
-// 🔥 Create Order - Using Batch instead of Transaction (More reliable)
+// 🔥 Create Order - Via Trusted Server API (Requires Auth Token & Server Verification)
 export const createOrder = async (orderData: Omit<Order, "id">): Promise<string> => {
   try {
-    const batch = writeBatch(db);
-    let orderId = "";
-
-    // 🔥 1. Check and update product stocks
-    for (const item of orderData.items) {
-      const productRef = doc(db, PRODUCTS_COLLECTION, item.productId);
-      const productSnap = await getDoc(productRef);
-      
-      if (!productSnap.exists()) {
-        throw new Error(`Product ${item.productId} not found`);
-      }
-
-      const currentStock = productSnap.data().stock || 0;
-      if (currentStock < item.quantity) {
-        throw new Error(
-          currentStock === 0
-            ? `"${item.name}" is currently out of stock. Please remove it from your cart.`
-            : `Not enough stock for "${item.name}". You requested ${item.quantity} but only ${currentStock} left.`
-        );
-      }
-
-      // Add stock update to batch
-      batch.update(productRef, {
-        stock: increment(-item.quantity),
-        updatedAt: Timestamp.now(),
-      });
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error("You must be logged in to place an order.");
     }
 
-    // 🔥 2. Create order
-    const orderRef = doc(collection(db, COLLECTION_NAME));
-    batch.set(orderRef, {
-      ...orderData,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+    const idToken = await currentUser.getIdToken();
+
+    const response = await fetch("/api/orders/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        userEmail: orderData.userEmail,
+        customerName: orderData.customerName,
+        items: orderData.items.map((item) => ({
+          productId: item.productId,
+          selectedSize: item.size || undefined,
+          selectedColor: item.color || undefined,
+          quantity: item.quantity,
+        })),
+        shippingAddress: orderData.shippingAddress,
+        paymentMethod: orderData.paymentMethod,
+        paymentProof: orderData.paymentProof || null,
+      }),
     });
-    orderId = orderRef.id;
 
-    // 🔥 3. Commit all changes
-    await batch.commit();
+    const data = await response.json();
 
-    return orderId;
-  } catch (error) {
-    console.error("Error creating order:", error);
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || "Failed to process order on server.");
+    }
+
+    return data.orderId;
+  } catch (error: any) {
+    console.error("Error creating order via trusted server API:", error);
     throw error;
   }
 };
@@ -96,7 +91,6 @@ export const getOrderById = async (orderId: string): Promise<Order | null> => {
 // 🔥 Get User Orders
 export const getUserOrders = async (userId: string): Promise<Order[]> => {
   try {
-    // 🔥 Query without orderBy
     const q = query(
       collection(db, COLLECTION_NAME),
       where("userId", "==", userId)
@@ -107,7 +101,6 @@ export const getUserOrders = async (userId: string): Promise<Order[]> => {
       ...doc.data(),
     })) as Order[];
     
-    // 🔥 Sort in memory
     return orders.sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
@@ -131,40 +124,50 @@ export const updateOrderStatus = async (orderId: string, status: Order["orderSta
   }
 };
 
-// 🔥 Cancel Order - Restore Stock
+// 🔥 Cancel Order - Safely Restore Stock via Transaction
 export const cancelOrder = async (orderId: string): Promise<void> => {
   try {
-    // 1. Get order
-    const orderRef = doc(db, COLLECTION_NAME, orderId);
-    const orderSnap = await getDoc(orderRef);
-    
-    if (!orderSnap.exists()) {
-      throw new Error("Order not found");
-    }
+    await runTransaction(db, async (transaction) => {
+      const orderRef = doc(db, COLLECTION_NAME, orderId);
+      const orderSnap = await transaction.get(orderRef);
 
-    const orderData = orderSnap.data() as Order;
-    
-    // 2. Create batch for stock restoration
-    const batch = writeBatch(db);
-    
-    // 3. Restore stock for each item
-    for (const item of orderData.items) {
-      const productRef = doc(db, PRODUCTS_COLLECTION, item.productId);
-      batch.update(productRef, {
-        stock: increment(item.quantity),
+      if (!orderSnap.exists()) {
+        throw new Error("Order not found");
+      }
+
+      const orderData = orderSnap.data() as Order;
+
+      if (orderData.orderStatus === "cancelled") {
+        throw new Error("Order is already cancelled.");
+      }
+
+      // Read product stock inside transaction
+      const productSnaps = await Promise.all(
+        orderData.items.map((item) =>
+          transaction.get(doc(db, PRODUCTS_COLLECTION, item.productId))
+        )
+      );
+
+      // Restore stock for each item inside transaction
+      for (let i = 0; i < orderData.items.length; i++) {
+        const item = orderData.items[i];
+        const pSnap = productSnaps[i];
+        if (pSnap.exists()) {
+          const productRef = doc(db, PRODUCTS_COLLECTION, item.productId);
+          const currentStock = Number(pSnap.data().stock) || 0;
+          transaction.update(productRef, {
+            stock: currentStock + item.quantity,
+            updatedAt: Timestamp.now(),
+          });
+        }
+      }
+
+      // Mark order as cancelled inside transaction
+      transaction.update(orderRef, {
+        orderStatus: "cancelled",
         updatedAt: Timestamp.now(),
       });
-    }
-
-    // 4. Update order status
-    batch.update(orderRef, {
-      orderStatus: "cancelled",
-      updatedAt: Timestamp.now(),
     });
-
-    // 5. Commit all changes
-    await batch.commit();
-    
   } catch (error) {
     console.error("Error cancelling order:", error);
     throw error;
