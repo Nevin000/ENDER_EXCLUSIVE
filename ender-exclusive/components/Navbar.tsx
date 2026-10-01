@@ -6,7 +6,6 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search,
   ShoppingBag,
   User,
   LogOut,
@@ -39,13 +38,10 @@ export default function Navbar() {
   const { wishlist } = useWishlist();
 
   const [mobileMenu, setMobileMenu] = useState(false);
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -64,7 +60,6 @@ export default function Navbar() {
   // Close mobile menu on route change
   useEffect(() => {
     setMobileMenu(false);
-    setSearchModalOpen(false);
     setUserMenuOpen(false);
   }, [pathname]);
 
@@ -92,14 +87,6 @@ export default function Navbar() {
     setUserMenuOpen(false);
     setMobileMenu(false);
     router.push("/");
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchModalOpen(false);
-    }
   };
 
   return (
@@ -327,16 +314,6 @@ export default function Navbar() {
 
             {/* 3. RIGHT HEADER TOOLS (RESPONSIVE FOR ALL DEVICES) */}
             <div className="flex items-center gap-2.5 sm:gap-4 lg:gap-6 shrink-0">
-              {/* Search Trigger Button / Pill (Responsive) */}
-              <button
-                type="button"
-                onClick={() => setSearchModalOpen(true)}
-                className="flex items-center gap-2.5 p-2.5 sm:px-4 sm:py-2.5 bg-zinc-100/90 dark:bg-[#18181B] hover:bg-zinc-200 dark:hover:bg-[#2A2A2A] border border-zinc-200 dark:border-[#2A2A2A] rounded-full text-zinc-700 dark:text-zinc-300 transition cursor-pointer text-sm font-semibold w-10 h-10 sm:w-44 md:w-56 lg:w-[240px] xl:w-[320px] justify-center sm:justify-start shadow-inner shrink-0"
-                aria-label="Search"
-              >
-                <Search className="w-5 h-5 text-zinc-400 shrink-0" />
-                <span className="hidden sm:inline-block truncate text-zinc-400 text-sm font-bold">Search store...</span>
-              </button>
 
               {/* Account Dropdown (INCREASED PROFILE AVATAR SIZE) */}
               <div ref={userMenuRef} className="relative">
@@ -509,79 +486,6 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* ===== SEARCH MODAL POPUP ===== */}
-      <AnimatePresence>
-        {searchModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSearchModalOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -20 }}
-              transition={{ duration: 0.2 }}
-              className="relative w-full max-w-2xl bg-white dark:bg-[#111111] rounded-3xl shadow-2xl border border-zinc-200 dark:border-[#2A2A2A] overflow-hidden z-10"
-            >
-              <form
-                onSubmit={handleSearchSubmit}
-                className="flex items-center border-b border-zinc-200 dark:border-[#2A2A2A] px-5 py-4 bg-zinc-50 dark:bg-[#0A0A0A]"
-              >
-                <Search className="w-6 h-6 text-zinc-400 mr-3" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products, gear, fightwear..."
-                  className="w-full bg-transparent text-zinc-900 dark:text-white placeholder-zinc-400 text-xl outline-none font-bold"
-                />
-                <button
-                  type="button"
-                  onClick={() => setSearchModalOpen(false)}
-                  className="p-1.5 hover:bg-zinc-200 dark:hover:bg-[#1A1A1A] rounded-xl transition text-zinc-500"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </form>
-
-              <div className="p-6">
-                <p className="text-xs font-black text-zinc-400 uppercase tracking-wider mb-3">
-                  Trending Searches
-                </p>
-                <div className="flex flex-wrap gap-2.5">
-                  {[
-                    "Fight Wear",
-                    "Boxing Gloves",
-                    "Rashguards",
-                    "Oversized Hoodies",
-                    "MMA Shorts",
-                    "Sports Caps",
-                  ].map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => {
-                        setSearchQuery(tag);
-                        router.push(`/shop?search=${encodeURIComponent(tag)}`);
-                        setSearchModalOpen(false);
-                      }}
-                      className="px-4 py-2 bg-zinc-100 dark:bg-[#1A1A1A] hover:bg-black dark:hover:bg-white hover:text-white dark:hover:text-black rounded-full text-sm font-bold text-zinc-700 dark:text-zinc-300 transition duration-200 cursor-pointer"
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
       {/* ===== MOBILE DRAWER SIDEBAR ===== */}
       <AnimatePresence>
         {mobileMenu && (
@@ -615,19 +519,6 @@ export default function Navbar() {
                 >
                   <X className="w-6 h-6" />
                 </button>
-              </div>
-
-              <div className="p-4 border-b border-zinc-100 dark:border-[#1F1F1F]">
-                <form onSubmit={handleSearchSubmit} className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search store..."
-                    className="w-full pl-11 pr-4 py-3 bg-zinc-100 dark:bg-[#1A1A1A] rounded-2xl text-base font-bold text-zinc-900 dark:text-white outline-none"
-                  />
-                </form>
               </div>
 
               <div className="flex-1 p-4 space-y-1.5">

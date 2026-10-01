@@ -130,7 +130,7 @@ export default function EditProductPage() {
 
             // Gather all images for this color
             const imagesForColor: VariantImageState[] = [];
-            
+
             // From cv.images array if available
             if (cv.images && cv.images.length > 0) {
               cv.images.forEach((url) => {
@@ -433,10 +433,10 @@ export default function EditProductPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-10 pb-36 font-sans selection:bg-amber-300 selection:text-black dark:selection:bg-amber-600 dark:selection:text-white">
-      
+    <div className="p-4 sm:p-6 w-full space-y-6 pb-20 font-sans selection:bg-amber-300 selection:text-black dark:selection:bg-amber-600 dark:selection:text-white">
+
       {/* Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#111111] dark:via-[#1A1A1A] dark:to-[#0D0D0D] border border-white/30 dark:border-[#2A2A2A]/50 shadow-2xl p-8 md:p-10">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#111111] dark:via-[#1A1A1A] dark:to-[#0D0D0D] border border-white/30 dark:border-[#2A2A2A]/50 shadow-2xl p-6 md:p-8">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 text-sm font-bold text-zinc-400 uppercase tracking-[0.2em] mb-1.5">
@@ -458,10 +458,10 @@ export default function EditProductPage() {
 
       {/* Main Container */}
       <div className="relative bg-white/70 dark:bg-[#111111]/70 backdrop-blur-xl border border-white/30 dark:border-[#2A2A2A]/60 rounded-3xl shadow-xl p-8 md:p-10 space-y-10">
-        
+
         {/* Basic Fields Grid */}
         <div className="grid lg:grid-cols-2 gap-8 gap-y-10">
-          
+
           {/* LEFT COLUMN */}
           <div className="space-y-6">
             <div>

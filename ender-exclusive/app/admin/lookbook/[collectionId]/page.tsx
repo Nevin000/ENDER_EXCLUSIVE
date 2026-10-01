@@ -151,18 +151,18 @@ export default function AdminCollectionProductsPage({
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 w-full space-y-6 pb-20 font-sans selection:bg-amber-300 selection:text-black dark:selection:bg-amber-600 dark:selection:text-white">
       {/* Back Button */}
       <Link
         href="/admin/lookbook"
-        className="inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-black transition"
+        className="inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white transition"
       >
         <HiOutlineArrowLeft className="w-4 h-4" />
         Back to Collections
       </Link>
 
       {/* Hero Header */}
-      <div className="relative rounded-3xl bg-zinc-950 text-white p-8 sm:p-10 overflow-hidden shadow-2xl border border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+      <div className="relative rounded-3xl bg-zinc-950 text-white p-6 md:p-8 overflow-hidden shadow-2xl border border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
         <div className="relative z-10 space-y-2 max-w-xl">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-amber-400 text-black rounded-full">
@@ -344,11 +344,10 @@ export default function AdminCollectionProductsPage({
                   <div
                     key={p.id}
                     onClick={() => handleToggleProduct(p.id)}
-                    className={`cursor-pointer rounded-2xl p-3 border-2 transition-all flex items-center gap-3.5 ${
-                      isSelected
+                    className={`cursor-pointer rounded-2xl p-3 border-2 transition-all flex items-center gap-3.5 ${isSelected
                         ? "border-black bg-zinc-50 shadow-md"
                         : "border-zinc-100 bg-white hover:border-zinc-300"
-                    }`}
+                      }`}
                   >
                     <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-zinc-100 shrink-0">
                       <Image src={img} alt={p.name} fill className="object-cover" />

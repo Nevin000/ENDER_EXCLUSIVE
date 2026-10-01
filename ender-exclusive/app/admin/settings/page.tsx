@@ -151,7 +151,7 @@ export default function AdminSettingsPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-[1600px] mx-auto space-y-10 pb-36 font-sans">
+      <div className="p-4 sm:p-6 w-full space-y-6 pb-20 font-sans">
         <div className="relative bg-white/60 dark:bg-[#111111]/60 backdrop-blur-xl border border-white/20 dark:border-[#2A2A2A]/60 rounded-3xl p-16 text-center shadow-2xl shadow-black/5">
           <div className="w-16 h-16 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mx-auto mb-5" />
           <p className="text-sm font-medium text-zinc-400 dark:text-zinc-500 tracking-widest uppercase">
@@ -163,7 +163,7 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-10 pb-36 font-sans selection:bg-amber-300 selection:text-black dark:selection:bg-amber-600 dark:selection:text-white">
+    <div className="p-4 sm:p-6 w-full space-y-6 pb-20 font-sans selection:bg-amber-300 selection:text-black dark:selection:bg-amber-600 dark:selection:text-white">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -180,7 +180,7 @@ export default function AdminSettingsPage() {
       </AnimatePresence>
 
       {/* ===== 1. HEADER SECTION ===== */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black dark:from-[#111111] dark:via-[#18181B] dark:to-[#0D0D0D] text-white border border-zinc-800 dark:border-[#2A2A2A]/50 shadow-2xl p-8 md:p-10">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black dark:from-[#111111] dark:via-[#18181B] dark:to-[#0D0D0D] text-white border border-zinc-800 dark:border-[#2A2A2A]/50 shadow-2xl p-6 md:p-8">
         <div className="absolute -top-24 -right-24 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-zinc-700/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -226,11 +226,10 @@ export default function AdminSettingsPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-xs md:text-sm font-medium uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-              activeTab === tab.id
+            className={`flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-xs md:text-sm font-medium uppercase tracking-wider transition-all duration-200 cursor-pointer ${activeTab === tab.id
                 ? "bg-zinc-900 text-white dark:bg-white dark:text-black shadow-md"
                 : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/70"
-            }`}
+              }`}
           >
             <tab.icon className="w-4 h-4" />
             <span>{tab.label}</span>

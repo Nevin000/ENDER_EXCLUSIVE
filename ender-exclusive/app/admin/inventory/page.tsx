@@ -40,7 +40,7 @@ export default function AdminInventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "low_stock" | "out_of_stock">("all");
-  
+
   // Inline editing state: { [productId]: stockNumber }
   const [editingStocks, setEditingStocks] = useState<{ [key: string]: number }>({});
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -191,7 +191,7 @@ export default function AdminInventoryPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-[1600px] mx-auto space-y-10 pb-36 font-sans">
+      <div className="p-4 sm:p-6 w-full space-y-6 pb-20 font-sans">
         <div className="relative bg-white/60 dark:bg-[#111111]/60 backdrop-blur-xl border border-white/20 dark:border-[#2A2A2A]/60 rounded-3xl p-16 text-center shadow-2xl shadow-black/5">
           <div className="w-16 h-16 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mx-auto mb-5" />
           <p className="text-base font-bold text-zinc-400 dark:text-zinc-500 tracking-widest uppercase">
@@ -203,7 +203,7 @@ export default function AdminInventoryPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-10 pb-36 font-sans selection:bg-amber-300 selection:text-black dark:selection:bg-amber-600 dark:selection:text-white">
+    <div className="p-4 sm:p-6 w-full space-y-6 pb-20 font-sans selection:bg-amber-300 selection:text-black dark:selection:bg-amber-600 dark:selection:text-white">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -220,7 +220,7 @@ export default function AdminInventoryPage() {
       </AnimatePresence>
 
       {/* ===== 1. HEADER SECTION ===== */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#111111] dark:via-[#1A1A1A] dark:to-[#0D0D0D] border border-white/30 dark:border-[#2A2A2A]/50 shadow-2xl shadow-black/5 p-8 md:p-10">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#111111] dark:via-[#1A1A1A] dark:to-[#0D0D0D] border border-white/30 dark:border-[#2A2A2A]/50 shadow-2xl shadow-black/5 p-6 md:p-8">
         <div className="absolute -top-24 -right-24 w-72 h-72 bg-amber-400/20 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -439,11 +439,10 @@ export default function AdminInventoryPage() {
                             type="number"
                             value={displayStock}
                             onChange={(e) => handleStockInputChange(product.id, e.target.value)}
-                            className={`w-20 py-2 text-center font-mono font-black text-base rounded-xl border outline-none transition ${
-                              hasEdited
-                                ? "bg-amber-50 text-amber-900 border-amber-400 dark:bg-amber-950/60 dark:text-amber-300"
-                                : "bg-zinc-100/70 dark:bg-[#1A1A1A]/70 text-zinc-900 dark:text-white border-transparent"
-                            }`}
+                            className={`w-20 py-2 text-center font-mono font-black text-base rounded-xl border outline-none transition ${hasEdited
+                              ? "bg-amber-50 text-amber-900 border-amber-400 dark:bg-amber-950/60 dark:text-amber-300"
+                              : "bg-zinc-100/70 dark:bg-[#1A1A1A]/70 text-zinc-900 dark:text-white border-transparent"
+                              }`}
                           />
 
                           <button

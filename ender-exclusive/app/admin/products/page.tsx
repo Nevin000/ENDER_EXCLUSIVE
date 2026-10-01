@@ -295,18 +295,18 @@ export default function ProductsPage() {
       const tableRows = exportList.map((p, idx) => {
         const sku = (p as any).sku || p.id.slice(0, 8).toUpperCase();
         const isOnSale = p.isOnSale || (p.salePrice && p.salePrice < p.price);
-        const priceDisplay = isOnSale && p.salePrice 
+        const priceDisplay = isOnSale && p.salePrice
           ? `Rs. ${p.salePrice.toLocaleString()} (Was Rs. ${p.price.toLocaleString()})`
           : `Rs. ${(p.price || 0).toLocaleString()}`;
-        
+
         const saleBadge = isOnSale ? "ON SALE" : "REGULAR";
 
         const createdDateStr = (p as any).createdAt
           ? new Date(((p as any).createdAt.seconds ? (p as any).createdAt.seconds * 1000 : (p as any).createdAt)).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
           : "N/A";
 
         return [
@@ -404,7 +404,7 @@ export default function ProductsPage() {
   const allPaginatedSelected = paginatedProducts.length > 0 && paginatedProducts.every((p) => selectedIds.includes(p.id));
 
   return (
-    <div className="p-6 md:p-10 max-w-[1600px] mx-auto space-y-10 pb-36 font-sans selection:bg-amber-400 selection:text-black">
+    <div className="p-4 sm:p-6 w-full space-y-6 pb-20 font-sans selection:bg-amber-400 selection:text-black">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -421,7 +421,7 @@ export default function ProductsPage() {
       </AnimatePresence>
 
       {/* ===== 1. HERO & HEADER BAR ===== */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black dark:from-[#111111] dark:via-[#18181B] dark:to-[#0D0D0D] text-white border border-zinc-800 dark:border-[#2A2A2A]/50 shadow-2xl p-8 md:p-10">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black dark:from-[#111111] dark:via-[#18181B] dark:to-[#0D0D0D] text-white border border-zinc-800 dark:border-[#2A2A2A]/50 shadow-2xl p-6 md:p-8">
         <div className="absolute -top-24 -right-24 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-zinc-700/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -821,10 +821,10 @@ export default function ProductsPage() {
 
                   const createdDateStr = (product as any).createdAt
                     ? new Date(((product as any).createdAt.seconds ? (product as any).createdAt.seconds * 1000 : (product as any).createdAt)).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
                     : "N/A";
 
                   const isSelected = selectedIds.includes(product.id);
@@ -832,11 +832,10 @@ export default function ProductsPage() {
                   return (
                     <tr
                       key={product.id}
-                      className={`transition-colors ${
-                        isSelected
+                      className={`transition-colors ${isSelected
                           ? "bg-amber-50/40 dark:bg-amber-950/20"
                           : "hover:bg-zinc-50/80 dark:hover:bg-[#161618]"
-                      }`}
+                        }`}
                     >
                       {/* Checkbox */}
                       <td className="px-6 py-5 text-center">
@@ -925,13 +924,12 @@ export default function ProductsPage() {
                       {/* Stock Status Pill */}
                       <td className="px-6 py-5 font-mono text-sm md:text-base font-medium">
                         <span
-                          className={`inline-flex items-center px-4 py-2 rounded-full text-xs md:text-sm font-semibold uppercase border ${
-                            isOutOfStock
+                          className={`inline-flex items-center px-4 py-2 rounded-full text-xs md:text-sm font-semibold uppercase border ${isOutOfStock
                               ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800"
                               : isLowStock
-                              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800"
-                              : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800"
-                          }`}
+                                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800"
+                            }`}
                         >
                           {isOutOfStock ? "Out of Stock (0)" : isLowStock ? `Low Stock (${stockNum})` : `In Stock (${stockNum})`}
                         </span>
@@ -941,11 +939,10 @@ export default function ProductsPage() {
                       <td className="px-6 py-5">
                         <button
                           onClick={() => handleTogglePublishStatus(product)}
-                          className={`px-4 py-2 rounded-full text-xs md:text-sm font-semibold uppercase border transition-all cursor-pointer ${
-                            product.status === "active"
+                          className={`px-4 py-2 rounded-full text-xs md:text-sm font-semibold uppercase border transition-all cursor-pointer ${product.status === "active"
                               ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800 hover:bg-emerald-100"
                               : "bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 hover:bg-zinc-200"
-                          }`}
+                            }`}
                           title="Click to toggle status"
                         >
                           {product.status === "active" ? "Active" : "Hidden"}
@@ -1108,9 +1105,8 @@ export default function ProductsPage() {
                           <button
                             key={idx}
                             onClick={() => setActiveImageIndex(idx)}
-                            className={`w-16 h-16 rounded-xl overflow-hidden border-2 shrink-0 transition cursor-pointer ${
-                              activeImageIndex === idx ? "border-amber-400 scale-105" : "border-transparent opacity-60"
-                            }`}
+                            className={`w-16 h-16 rounded-xl overflow-hidden border-2 shrink-0 transition cursor-pointer ${activeImageIndex === idx ? "border-amber-400 scale-105" : "border-transparent opacity-60"
+                              }`}
                           >
                             <img src={img} alt="" className="w-full h-full object-cover" />
                           </button>

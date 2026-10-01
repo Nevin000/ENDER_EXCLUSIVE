@@ -14,7 +14,6 @@ import {
     HiCheck,
 } from "react-icons/hi2";
 import { FaTruck, FaShieldAlt, FaClock, FaFire, FaGift, FaTag } from "react-icons/fa";
-import { SiVisa, SiMastercard, SiDiscover, SiAmericanexpress } from "react-icons/si";
 import { Flame, Sparkles, ShoppingBag, ArrowRight, Trash2 } from "lucide-react";
 
 import { CartItem } from "@/types/cart";
@@ -231,7 +230,7 @@ export default function CartPage() {
     return (
         <div className="min-h-screen bg-white dark:bg-[#070707] text-zinc-900 dark:text-white transition-colors duration-300 py-8 sm:py-12 lg:py-16 pb-28">
             <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-                
+
                 {/* ===== HEADER BAR ===== */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800/80 pb-6">
                     <div className="flex items-center gap-4 flex-wrap">
@@ -252,21 +251,20 @@ export default function CartPage() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-10">
-                    
+
                     {/* ===== LEFT: CART ITEMS (2/3) ===== */}
                     <div className="lg:col-span-2 space-y-6">
-                        
+
                         {/* Select All & Bulk Controls Bar */}
                         <div className="bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4 shadow-sm">
                             <button
                                 onClick={toggleSelectAll}
                                 className="flex items-center gap-3.5 text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white hover:text-red-600 dark:hover:text-red-500 transition cursor-pointer"
                             >
-                                <div className={`w-6 h-6 rounded-xl border-2 flex items-center justify-center transition ${
-                                    isAllSelected
-                                        ? 'bg-red-600 border-red-600 text-white'
-                                        : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-[#181818]'
-                                }`}>
+                                <div className={`w-6 h-6 rounded-xl border-2 flex items-center justify-center transition ${isAllSelected
+                                    ? 'bg-red-600 border-red-600 text-white'
+                                    : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-[#181818]'
+                                    }`}>
                                     {isAllSelected && <HiCheck className="text-white text-base stroke-[3]" />}
                                 </div>
                                 <span>Select All Items ({totalQuantity})</span>
@@ -309,26 +307,24 @@ export default function CartPage() {
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, scale: 0.95 }}
                                             transition={{ duration: 0.3 }}
-                                            className={`bg-zinc-50/80 dark:bg-[#111111] rounded-3xl border-2 transition-all duration-300 shadow-sm overflow-hidden ${
-                                                isSelected
-                                                    ? 'border-red-600 dark:border-red-500/80 shadow-red-500/10'
-                                                    : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
-                                            }`}
+                                            className={`bg-zinc-50/80 dark:bg-[#111111] rounded-3xl border-2 transition-all duration-300 shadow-sm overflow-hidden ${isSelected
+                                                ? 'border-red-600 dark:border-red-500/80 shadow-red-500/10'
+                                                : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
+                                                }`}
                                         >
                                             <div className="p-6 sm:p-7">
                                                 <div className="flex items-start gap-4 sm:gap-6">
-                                                    
+
                                                     {/* Selection Checkbox */}
                                                     <button
                                                         onClick={() => toggleItem(item.id)}
                                                         className="mt-2 shrink-0 cursor-pointer"
                                                         aria-label="Select item"
                                                     >
-                                                        <div className={`w-6 h-6 rounded-xl border-2 flex items-center justify-center transition ${
-                                                            isSelected
-                                                                ? 'bg-red-600 border-red-600 text-white'
-                                                                : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-[#181818]'
-                                                        }`}>
+                                                        <div className={`w-6 h-6 rounded-xl border-2 flex items-center justify-center transition ${isSelected
+                                                            ? 'bg-red-600 border-red-600 text-white'
+                                                            : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-[#181818]'
+                                                            }`}>
                                                             {isSelected && <HiCheck className="text-white text-base stroke-[3]" />}
                                                         </div>
                                                     </button>
@@ -408,7 +404,7 @@ export default function CartPage() {
 
                                                         {/* Controls Bar */}
                                                         <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800/80">
-                                                            
+
                                                             {/* Quantity Selector */}
                                                             <div className="flex items-center border border-zinc-300 dark:border-zinc-700 rounded-2xl overflow-hidden bg-white dark:bg-[#181818] shadow-sm">
                                                                 <button
@@ -493,7 +489,7 @@ export default function CartPage() {
                     {/* ===== RIGHT: ORDER SUMMARY (1/3) ===== */}
                     <div className="lg:col-span-1">
                         <div className="sticky top-28 bg-zinc-50 dark:bg-[#111111] rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-xl p-7 sm:p-8 space-y-6">
-                            
+
                             <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/80 pb-4">
                                 <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">
                                     Order Summary
@@ -616,17 +612,8 @@ export default function CartPage() {
                                         </button>
                                     </div>
 
-                                    {/* Secure Payment Icons */}
-                                    <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800/80 space-y-3 text-center">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block">
-                                            Accepted Payment Methods
-                                        </span>
-                                        <div className="flex items-center justify-center gap-4 text-3xl">
-                                            <SiVisa className="text-[#1A1F71] dark:text-white" />
-                                            <SiMastercard className="text-[#EB001B]" />
-                                            <SiDiscover className="text-[#FF6000]" />
-                                            <SiAmericanexpress className="text-[#006FCF]" />
-                                        </div>
+                                    {/* Secure Checkout Notice */}
+                                    <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800/80 text-center">
                                         <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                                             🔒 100% Encrypted & Secure Checkout
                                         </p>
