@@ -1,4 +1,4 @@
-import { db } from "@/firebase/config";
+import { auth, adminAuth, db, adminDb } from "@/firebase/config";
 import {
   collection,
   doc,
@@ -14,6 +14,8 @@ import {
 } from "firebase/firestore";
 import { FighterImage, FighterImageFilterOptions } from "@/types/fighter";
 
+const getFirestoreDb = () => (adminAuth.currentUser ? adminDb : db);
+
 const COLLECTION_NAME = "fighters";
 
 /**
@@ -23,7 +25,7 @@ export async function getFighterImages(
   options: FighterImageFilterOptions = {}
 ): Promise<FighterImage[]> {
   try {
-    const colRef = collection(db, COLLECTION_NAME);
+    const colRef = collection(getFirestoreDb(), COLLECTION_NAME);
     const snapshot = await getDocs(colRef);
     let images: FighterImage[] = snapshot.docs.map((docSnap) => {
       const data = docSnap.data();
@@ -73,12 +75,13 @@ export async function createFighterImagesBulk(
 ): Promise<void> {
   if (!items || items.length === 0) return;
   try {
+    const activeDb = getFirestoreDb();
     // Get current max displayOrder
     const existing = await getFighterImages({ status: "all" });
     const maxOrder = existing.reduce((max, img) => Math.max(max, img.displayOrder || 0), 0);
 
-    const batch = writeBatch(db);
-    const colRef = collection(db, COLLECTION_NAME);
+    const batch = writeBatch(activeDb);
+    const colRef = collection(activeDb, COLLECTION_NAME);
 
     items.forEach((item, index) => {
       const newDocRef = doc(colRef);
@@ -114,9 +117,10 @@ export async function updateFighterImagesOrder(
 ): Promise<void> {
   if (!orderedItems || orderedItems.length === 0) return;
   try {
-    const batch = writeBatch(db);
+    const activeDb = getFirestoreDb();
+    const batch = writeBatch(activeDb);
     orderedItems.forEach((item) => {
-      const docRef = doc(db, COLLECTION_NAME, item.id);
+      const docRef = doc(activeDb, COLLECTION_NAME, item.id);
       batch.update(docRef, {
         displayOrder: item.displayOrder,
         updatedAt: serverTimestamp(),
@@ -137,7 +141,7 @@ export async function updateFighterImageStatus(
   status: "published" | "draft"
 ): Promise<void> {
   try {
-    const docRef = doc(db, COLLECTION_NAME, id);
+    const docRef = doc(getFirestoreDb(), COLLECTION_NAME, id);
     await updateDoc(docRef, {
       status,
       updatedAt: serverTimestamp(),
@@ -153,7 +157,7 @@ export async function updateFighterImageStatus(
  */
 export async function deleteFighterImage(id: string): Promise<void> {
   try {
-    const docRef = doc(db, COLLECTION_NAME, id);
+    const docRef = doc(getFirestoreDb(), COLLECTION_NAME, id);
     await deleteDoc(docRef);
   } catch (error) {
     console.error(`Error deleting fighter image ${id}:`, error);
@@ -167,9 +171,10 @@ export async function deleteFighterImage(id: string): Promise<void> {
 export async function bulkDeleteFighterImages(ids: string[]): Promise<void> {
   if (!ids || ids.length === 0) return;
   try {
-    const batch = writeBatch(db);
+    const activeDb = getFirestoreDb();
+    const batch = writeBatch(activeDb);
     ids.forEach((id) => {
-      const docRef = doc(db, COLLECTION_NAME, id);
+      const docRef = doc(activeDb, COLLECTION_NAME, id);
       batch.delete(docRef);
     });
     await batch.commit();
@@ -188,9 +193,10 @@ export async function bulkUpdateFighterImagesStatus(
 ): Promise<void> {
   if (!ids || ids.length === 0) return;
   try {
-    const batch = writeBatch(db);
+    const activeDb = getFirestoreDb();
+    const batch = writeBatch(activeDb);
     ids.forEach((id) => {
-      const docRef = doc(db, COLLECTION_NAME, id);
+      const docRef = doc(activeDb, COLLECTION_NAME, id);
       batch.update(docRef, {
         status,
         updatedAt: serverTimestamp(),

@@ -18,6 +18,7 @@ import {
   HiOutlineChevronDown,
   HiOutlineBars3,
   HiOutlineXMark,
+  HiOutlineEnvelope,
 } from "react-icons/hi2";
 import { HiOutlineLogout } from "react-icons/hi";
 import { FaChevronUp } from "react-icons/fa";
@@ -28,7 +29,7 @@ import { logoutAdminUser } from "@/services/authService";
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { adminUser, adminRole } = useAdminAuth();
+  const { adminUser, adminRole, adminLoading } = useAdminAuth();
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [featuredLookOpen, setFeaturedLookOpen] = useState(false);
@@ -51,7 +52,9 @@ export default function AdminSidebar() {
     }
   };
 
-  if (!adminUser || adminRole !== "admin") return null;
+  // Render sidebar inside admin protected portal layout
+  const isUnauthenticated = !adminLoading && !adminUser && adminRole !== "admin";
+  if (isUnauthenticated) return null;
 
   const userInitial =
     adminUser?.displayName?.charAt(0).toUpperCase() ||
@@ -149,6 +152,21 @@ export default function AdminSidebar() {
             )}
             <HiOutlineUsers className={`text-3xl ${pathname.startsWith("/admin/users") ? "text-amber-400" : "text-zinc-500"}`} />
             <span>Customers</span>
+          </Link>
+
+          {/* Inquiries */}
+          <Link
+            href="/admin/messages"
+            className={`
+              relative flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-200 text-lg font-extrabold tracking-wide
+              ${pathname.startsWith("/admin/messages") ? "bg-zinc-800 text-white shadow-lg" : "text-zinc-400 hover:bg-zinc-900 hover:text-white"}
+            `}
+          >
+            {pathname.startsWith("/admin/messages") && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-9 bg-amber-400 rounded-r-full" />
+            )}
+            <HiOutlineEnvelope className={`text-3xl ${pathname.startsWith("/admin/messages") ? "text-amber-400" : "text-zinc-500"}`} />
+            <span>Inquiries</span>
           </Link>
 
           {/* FEATURED LOOK COLLAPSIBLE DROPDOWN MENU */}

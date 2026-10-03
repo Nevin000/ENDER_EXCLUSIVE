@@ -411,7 +411,7 @@ export default function Navbar() {
 
                             {role === "admin" && (
                               <Link
-                                href="/dashboard"
+                                href="/admin"
                                 onClick={() => setUserMenuOpen(false)}
                                 className="flex items-center justify-between px-4 py-3 rounded-xl text-base font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300"
                               >

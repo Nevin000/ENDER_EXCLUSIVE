@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { db } from "@/firebase/config";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -27,59 +27,103 @@ interface WishlistContextType {
 
 const WishlistContext = createContext<WishlistContextType>({
   wishlist: [],
-  addToWishlist: async () => {},
-  removeFromWishlist: async () => {},
+  addToWishlist: async () => { },
+  removeFromWishlist: async () => { },
   isInWishlist: () => false,
-  toggleWishlist: async () => {},
-  clearWishlist: async () => {},
+  toggleWishlist: async () => { },
+  clearWishlist: async () => { },
 });
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
 
-  // Load wishlist from localStorage or Firestore on mount / user change
+  // Load wishlist from Firestore (strictly bound to user.uid) or user-isolated LocalStorage
   useEffect(() => {
+    let isCancelled = false;
+
     const loadWishlist = async () => {
-      if (user) {
-        try {
-          const userRef = doc(db, "users", user.uid);
-          const snap = await getDoc(userRef);
-          if (snap.exists() && snap.data().wishlist) {
-            setWishlist(snap.data().wishlist);
-            return;
+      if (!user) {
+        // Guest user — load from guest-isolated LocalStorage
+        const localData = localStorage.getItem("ender_wishlist_guest");
+        if (!isCancelled) {
+          if (localData) {
+            try {
+              setWishlist(JSON.parse(localData));
+            } catch {
+              setWishlist([]);
+            }
+          } else {
+            setWishlist([]);
           }
-        } catch (e) {
-          console.error("Error fetching wishlist from Firestore:", e);
         }
+        return;
       }
 
-      // Fallback to LocalStorage
-      const localData = localStorage.getItem("ender_wishlist");
-      if (localData) {
-        try {
-          setWishlist(JSON.parse(localData));
-        } catch (e) {
-          console.error("Error parsing local wishlist:", e);
+      // Logged in user — load from Firestore `wishlist/{user.uid}`
+      try {
+        const wishlistRef = doc(db, "wishlist", user.uid);
+        const snap = await getDoc(wishlistRef);
+
+        if (snap.exists() && Array.isArray(snap.data().items)) {
+          const items = snap.data().items;
+          if (!isCancelled) {
+            setWishlist(items);
+            localStorage.setItem(`ender_wishlist_${user.uid}`, JSON.stringify(items));
+          }
+          return;
+        }
+
+        // Check user-isolated localStorage key fallback
+        const userLocal = localStorage.getItem(`ender_wishlist_${user.uid}`);
+        if (userLocal) {
+          try {
+            const parsed = JSON.parse(userLocal);
+            if (!isCancelled) setWishlist(parsed);
+            await setDoc(wishlistRef, { userId: user.uid, items: parsed, updatedAt: new Date().toISOString() }, { merge: true });
+            return;
+          } catch { }
+        }
+
+        if (!isCancelled) setWishlist([]);
+      } catch (e) {
+        // Fallback gracefully to user-isolated localStorage if Firestore is offline or unauthenticated
+        const userLocal = localStorage.getItem(`ender_wishlist_${user.uid}`);
+        if (userLocal && !isCancelled) {
+          try {
+            setWishlist(JSON.parse(userLocal));
+          } catch {
+            setWishlist([]);
+          }
+        } else if (!isCancelled) {
+          setWishlist([]);
         }
       }
     };
 
     loadWishlist();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [user]);
 
-  // Persist helper
+  // Save helper — strictly bound to current user.uid
   const saveWishlist = async (newList: WishlistItem[]) => {
     setWishlist(newList);
-    localStorage.setItem("ender_wishlist", JSON.stringify(newList));
 
     if (user) {
+      const userKey = `ender_wishlist_${user.uid}`;
+      localStorage.setItem(userKey, JSON.stringify(newList));
+
       try {
-        const userRef = doc(db, "users", user.uid);
-        await setDoc(userRef, { wishlist: newList }, { merge: true });
+        const wishlistRef = doc(db, "wishlist", user.uid);
+        await setDoc(wishlistRef, { userId: user.uid, items: newList, updatedAt: new Date().toISOString() }, { merge: true });
       } catch (e) {
-        console.error("Error saving wishlist to Firestore:", e);
+        // Fallback silently to user-isolated localStorage
       }
+    } else {
+      localStorage.setItem("ender_wishlist_guest", JSON.stringify(newList));
     }
   };
 

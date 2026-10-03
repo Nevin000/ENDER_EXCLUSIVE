@@ -1,6 +1,6 @@
 // services/orderService.ts
 
-import { auth, db } from "@/firebase/config";
+import { auth, adminAuth, db, adminDb } from "@/firebase/config";
 import {
   collection,
   addDoc,
@@ -19,6 +19,8 @@ import {
 } from "firebase/firestore";
 import { CartItem } from "@/types/cart";
 import { Order } from "@/types/order";
+
+const getFirestoreDb = () => (adminAuth.currentUser ? adminDb : db);
 
 const COLLECTION_NAME = "orders";
 const PRODUCTS_COLLECTION = "products";
@@ -70,7 +72,7 @@ export const createOrder = async (orderData: Omit<Order, "id">): Promise<string>
 // 🔥 Get Order by ID
 export const getOrderById = async (orderId: string): Promise<Order | null> => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, orderId);
+    const docRef = doc(getFirestoreDb(), COLLECTION_NAME, orderId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
@@ -92,7 +94,7 @@ export const getOrderById = async (orderId: string): Promise<Order | null> => {
 export const getUserOrders = async (userId: string): Promise<Order[]> => {
   try {
     const q = query(
-      collection(db, COLLECTION_NAME),
+      collection(getFirestoreDb(), COLLECTION_NAME),
       where("userId", "==", userId)
     );
     const snapshot = await getDocs(q);
@@ -113,7 +115,7 @@ export const getUserOrders = async (userId: string): Promise<Order[]> => {
 // 🔥 Update Order Status
 export const updateOrderStatus = async (orderId: string, status: Order["orderStatus"]): Promise<void> => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, orderId);
+    const docRef = doc(getFirestoreDb(), COLLECTION_NAME, orderId);
     await updateDoc(docRef, {
       orderStatus: status,
       updatedAt: Timestamp.now(),
@@ -127,8 +129,9 @@ export const updateOrderStatus = async (orderId: string, status: Order["orderSta
 // 🔥 Cancel Order - Safely Restore Stock via Transaction
 export const cancelOrder = async (orderId: string): Promise<void> => {
   try {
-    await runTransaction(db, async (transaction) => {
-      const orderRef = doc(db, COLLECTION_NAME, orderId);
+    const activeDb = getFirestoreDb();
+    await runTransaction(activeDb, async (transaction) => {
+      const orderRef = doc(activeDb, COLLECTION_NAME, orderId);
       const orderSnap = await transaction.get(orderRef);
 
       if (!orderSnap.exists()) {
@@ -144,7 +147,7 @@ export const cancelOrder = async (orderId: string): Promise<void> => {
       // Read product stock inside transaction
       const productSnaps = await Promise.all(
         orderData.items.map((item) =>
-          transaction.get(doc(db, PRODUCTS_COLLECTION, item.productId))
+          transaction.get(doc(activeDb, PRODUCTS_COLLECTION, item.productId))
         )
       );
 
@@ -153,7 +156,7 @@ export const cancelOrder = async (orderId: string): Promise<void> => {
         const item = orderData.items[i];
         const pSnap = productSnaps[i];
         if (pSnap.exists()) {
-          const productRef = doc(db, PRODUCTS_COLLECTION, item.productId);
+          const productRef = doc(activeDb, PRODUCTS_COLLECTION, item.productId);
           const currentStock = Number(pSnap.data().stock) || 0;
           transaction.update(productRef, {
             stock: currentStock + item.quantity,
@@ -177,15 +180,23 @@ export const cancelOrder = async (orderId: string): Promise<void> => {
 // 🔥 Get All Orders (Admin)
 export const getAllOrders = async (): Promise<Order[]> => {
   try {
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      orderBy("createdAt", "desc")
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => ({
+    const activeDb = getFirestoreDb();
+    const snapshot = await getDocs(collection(activeDb, COLLECTION_NAME));
+    const orders = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     })) as Order[];
+
+    return orders.sort((a, b) => {
+      const getTime = (val: any): number => {
+        if (!val) return 0;
+        if (typeof val === "object" && val.seconds) return val.seconds * 1000;
+        if (typeof val === "string") return new Date(val).getTime();
+        if (typeof val === "number") return val;
+        return 0;
+      };
+      return getTime(b.createdAt || b.orderDate) - getTime(a.createdAt || a.orderDate);
+    });
   } catch (error) {
     console.error("Error getting all orders:", error);
     throw error;
@@ -195,7 +206,7 @@ export const getAllOrders = async (): Promise<Order[]> => {
 // 🔥 Update Order with Payment Proof
 export const updateOrderPaymentProof = async (orderId: string, proofUrl: string): Promise<void> => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, orderId);
+    const docRef = doc(getFirestoreDb(), COLLECTION_NAME, orderId);
     await updateDoc(docRef, {
       paymentProof: proofUrl,
       paymentStatus: "paid",
@@ -210,7 +221,7 @@ export const updateOrderPaymentProof = async (orderId: string, proofUrl: string)
 // 🔥 Delete Order (Admin only)
 export const deleteOrder = async (orderId: string): Promise<void> => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, orderId);
+    const docRef = doc(getFirestoreDb(), COLLECTION_NAME, orderId);
     await deleteDoc(docRef);
   } catch (error) {
     console.error("Error deleting order:", error);
@@ -229,7 +240,7 @@ export const updateOrderDeliveryDetails = async (
   }
 ): Promise<void> => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, orderId);
+    const docRef = doc(getFirestoreDb(), COLLECTION_NAME, orderId);
     await updateDoc(docRef, {
       ...(deliveryDetails.orderStatus && { orderStatus: deliveryDetails.orderStatus }),
       trackingNumber: deliveryDetails.trackingNumber,

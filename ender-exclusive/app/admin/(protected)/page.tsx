@@ -9,7 +9,7 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import { db } from "@/firebase/config";
+import { auth, adminAuth, db, adminDb } from "@/firebase/config";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { Product } from "@/types/product";
 import { Order } from "@/types/order";
@@ -60,8 +60,10 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     setLoading(true);
 
+    const activeDb = adminAuth.currentUser ? adminDb : db;
+
     // 1. Subscribe to Live Products
-    const unsubProducts = onSnapshot(collection(db, "products"), (snap) => {
+    const unsubProducts = onSnapshot(collection(activeDb, "products"), (snap) => {
       const list = snap.docs.map((doc) => ({
         id: doc.id,
         ...(doc.data() as Omit<Product, "id">),
@@ -70,7 +72,7 @@ export default function AdminDashboardPage() {
     }, (err) => console.error("Error in products realtime listener:", err));
 
     // 2. Subscribe to Live Orders
-    const unsubOrders = onSnapshot(collection(db, "orders"), (snap) => {
+    const unsubOrders = onSnapshot(collection(activeDb, "orders"), (snap) => {
       const list = snap.docs.map((doc) => ({
         id: doc.id,
         ...(doc.data() as Omit<Order, "id">),
@@ -79,7 +81,7 @@ export default function AdminDashboardPage() {
     }, (err) => console.error("Error in orders realtime listener:", err));
 
     // 3. Subscribe to Live Users
-    const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
+    const unsubUsers = onSnapshot(collection(activeDb, "users"), (snap) => {
       const list = snap.docs.map((doc) => ({
         id: doc.id,
         ...(doc.data() as any),
@@ -88,7 +90,7 @@ export default function AdminDashboardPage() {
     }, (err) => console.error("Error in users realtime listener:", err));
 
     // 4. Subscribe to Live Lookbook Collections
-    const unsubLookbooks = onSnapshot(collection(db, "lookbook_collections"), (snap) => {
+    const unsubLookbooks = onSnapshot(collection(activeDb, "lookbook_collections"), (snap) => {
       const list = snap.docs.map((doc) => ({
         id: doc.id,
         ...(doc.data() as Omit<LookBookCollection, "id">),
@@ -97,7 +99,7 @@ export default function AdminDashboardPage() {
     }, (err) => console.error("Error in lookbook realtime listener:", err));
 
     // 5. Subscribe to Live Fighters Showcase
-    const unsubFighters = onSnapshot(collection(db, "fighters"), (snap) => {
+    const unsubFighters = onSnapshot(collection(activeDb, "fighters"), (snap) => {
       const list = snap.docs.map((doc) => ({
         id: doc.id,
         ...(doc.data() as Omit<FighterImage, "id">),

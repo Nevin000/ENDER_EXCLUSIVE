@@ -227,8 +227,8 @@ export default function AdminSettingsPage() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             className={`flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-xs md:text-sm font-medium uppercase tracking-wider transition-all duration-200 cursor-pointer ${activeTab === tab.id
-                ? "bg-zinc-900 text-white dark:bg-white dark:text-black shadow-md"
-                : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/70"
+              ? "bg-zinc-900 text-white dark:bg-white dark:text-black shadow-md"
+              : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/70"
               }`}
           >
             <tab.icon className="w-4 h-4" />
