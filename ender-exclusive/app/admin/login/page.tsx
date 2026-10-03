@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck,
@@ -16,13 +15,14 @@ import {
 } from "lucide-react";
 
 import { loginAdminUser, logoutAdminUser, resetPassword } from "@/services/authService";
-import { validateUserAccess, getAdminLoginError } from "@/lib/authService";
+import { validateUserAccess } from "@/lib/authService";
 import { useAdminAuth } from "@/context/AdminAuthContext";
+import { setSessionCookie, clearSessionCookie } from "@/app/actions/auth";
 
 // ─── Security Constants ──────────────────────────────────────────────────────
-const MAX_ATTEMPTS = 5;          // Lock after 5 failed attempts
-const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minute lockout
-const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;   // Reset counter after 10 minutes of no attempts
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const STORAGE_KEY = "ender_admin_lockout";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -63,8 +63,7 @@ function formatCountdown(ms: number): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function AdminLoginPage() {
-  const router = useRouter();
-  const { adminUser, adminRole, adminLoading } = useAdminAuth();
+  const { adminLoading } = useAdminAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -82,20 +81,17 @@ export default function AdminLoginPage() {
     const data = getLockoutData();
     const now = Date.now();
 
-    // Clear stale attempts if last attempt was too long ago
     if (data.lastAttemptAt && now - data.lastAttemptAt > ATTEMPT_WINDOW_MS && !data.lockedUntil) {
       clearLockoutData();
       setAttemptsLeft(MAX_ATTEMPTS);
       return;
     }
 
-    // Check if still locked
     if (data.lockedUntil && data.lockedUntil > now) {
       setIsLocked(true);
       setLockCountdown(data.lockedUntil - now);
       setAttemptsLeft(0);
     } else if (data.lockedUntil && data.lockedUntil <= now) {
-      // Lockout expired — clear it
       clearLockoutData();
       setAttemptsLeft(MAX_ATTEMPTS);
     } else {
@@ -125,13 +121,6 @@ export default function AdminLoginPage() {
     return () => clearInterval(interval);
   }, [isLocked, lockCountdown]);
 
-  // ── Auth redirect ────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!adminLoading && adminUser && adminRole === "admin") {
-      router.replace("/admin");
-    }
-  }, [adminUser, adminRole, adminLoading, router]);
-
   // ── Record failed attempt ────────────────────────────────────────────────
   const recordFailedAttempt = useCallback(() => {
     const data = getLockoutData();
@@ -150,17 +139,13 @@ export default function AdminLoginPage() {
     }
   }, []);
 
-  // ── 2FA & Password Reset State ───────────────────────────────────────────
+  // ── Password Reset State ─────────────────────────────────────────────────
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState("");
 
-  const [mfaResolver, setMfaResolver] = useState<any>(null);
-  const [mfaCode, setMfaCode] = useState("");
-
-  // ── Handle Admin Password Reset ──────────────────────────────────────────
   const handleAdminResetPassword = async () => {
     if (!resetEmail.trim()) {
       setResetError("Please enter your admin email address.");
@@ -171,7 +156,7 @@ export default function AdminLoginPage() {
       setResetError("");
       await resetPassword(resetEmail.trim());
       setResetSent(true);
-    } catch (err: any) {
+    } catch {
       setResetError("Failed to send reset email. Ensure the email is correct.");
     } finally {
       setResetLoading(false);
@@ -180,7 +165,7 @@ export default function AdminLoginPage() {
 
   // ── Handle Login ─────────────────────────────────────────────────────────
   const handleAdminLogin = async () => {
-    if (isLocked) return;
+    if (isLocked || loading) return;
 
     try {
       setError("");
@@ -200,23 +185,32 @@ export default function AdminLoginPage() {
 
       if (!result.valid) {
         await logoutAdminUser();
+        await clearSessionCookie();
         recordFailedAttempt();
-        // ⚠️ Security: generic message — don't reveal role mismatch details
         setError("Invalid credentials. Please try again.");
         setLoading(false);
         return;
       }
 
-      // Step 3: Success — clear lockout, redirect
+      // Step 3: SUCCESS
       clearLockoutData();
-      router.replace("/admin");
+
+      // Get ID token + set session cookie BEFORE redirect
+      const idToken = await loggedInAdmin.getIdToken();
+      await setSessionCookie(idToken);
+
+      // ⚠️ CRITICAL: Wait for cookie to propagate to browser
+      await new Promise((r) => setTimeout(r, 500));
+
+      // ⚠️ Use window.location.href for full page reload
+      // (so server-side layout picks up the new cookie)
+      window.location.href = "/admin";
     } catch (err: any) {
       const msg: string = err?.message || "";
       recordFailedAttempt();
 
       if (err.code === "auth/multi-factor-auth-required") {
-        setMfaResolver(err);
-        setError("");
+        setError("2FA is required. Please contact your administrator.");
         setLoading(false);
         return;
       }
@@ -230,7 +224,7 @@ export default function AdminLoginPage() {
       ) {
         setError("Invalid credentials. Please try again.");
       } else if (msg.includes("too-many-requests")) {
-        setError("Too many failed attempts. Your account has been temporarily locked by Firebase.");
+        setError("Too many failed attempts. Your account has been temporarily locked.");
       } else if (msg.includes("network")) {
         setError("Network error. Please check your connection.");
       } else {
@@ -241,7 +235,7 @@ export default function AdminLoginPage() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !isLocked) handleAdminLogin();
+    if (e.key === "Enter" && !isLocked && !loading) handleAdminLogin();
   };
 
   if (adminLoading) {
@@ -264,7 +258,6 @@ export default function AdminLoginPage() {
         transition={{ duration: 0.35 }}
         className="w-full max-w-md bg-zinc-950 rounded-3xl p-8 sm:p-10 border border-zinc-800 shadow-2xl relative overflow-hidden"
       >
-        {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
 
@@ -281,7 +274,7 @@ export default function AdminLoginPage() {
           </p>
         </div>
 
-        {/* ── LOCKED STATE ── */}
+        {/* LOCKED STATE / FORM STATE */}
         <AnimatePresence mode="wait">
           {isLocked ? (
             <motion.div
@@ -291,7 +284,6 @@ export default function AdminLoginPage() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="space-y-5"
             >
-              {/* Lock Icon */}
               <div className="flex flex-col items-center gap-3 py-4">
                 <div className="w-16 h-16 rounded-2xl bg-red-950/60 border border-red-800/60 flex items-center justify-center">
                   <XCircle className="w-9 h-9 text-red-400" />
@@ -306,7 +298,6 @@ export default function AdminLoginPage() {
                 </div>
               </div>
 
-              {/* Countdown */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-center space-y-2">
                 <div className="flex items-center justify-center gap-2 text-amber-400">
                   <Clock className="w-5 h-5" />
@@ -323,14 +314,11 @@ export default function AdminLoginPage() {
                   <Shield className="w-3.5 h-3.5 text-amber-400" /> Security Notice
                 </p>
                 <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                  This portal is protected against brute-force attacks. Repeated failures will extend the lockout period. If this wasn&apos;t you, contact your system administrator.
+                  This portal is protected against brute-force attacks. Repeated failures will extend the lockout period.
                 </p>
               </div>
             </motion.div>
-
           ) : (
-
-            /* ── FORM STATE ── */
             <motion.div
               key="form"
               initial={{ opacity: 0 }}
@@ -338,7 +326,6 @@ export default function AdminLoginPage() {
               exit={{ opacity: 0 }}
               className="space-y-4"
             >
-              {/* Error Alert */}
               <AnimatePresence>
                 {error && (
                   <motion.div
@@ -354,7 +341,6 @@ export default function AdminLoginPage() {
                 )}
               </AnimatePresence>
 
-              {/* Attempts remaining warning */}
               {attemptsLeft < MAX_ATTEMPTS && attemptsLeft > 0 && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -451,18 +437,17 @@ export default function AdminLoginPage() {
                 )}
               </button>
 
-              {/* Security badge */}
               <div className="flex items-center justify-center gap-1.5 pt-1">
                 <Shield className="w-3.5 h-3.5 text-zinc-600" />
                 <p className="text-[11px] text-zinc-600 font-semibold">
-                  Protected · {MAX_ATTEMPTS} attempt limit · 15 min lockout · 2FA Support
+                  Protected · {MAX_ATTEMPTS} attempt limit · 15 min lockout
                 </p>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ── RESET PASSWORD MODAL ── */}
+        {/* RESET PASSWORD MODAL */}
         <AnimatePresence>
           {showResetModal && (
             <motion.div
@@ -492,7 +477,7 @@ export default function AdminLoginPage() {
                 {resetSent ? (
                   <div className="space-y-4 text-center py-4">
                     <p className="text-sm text-emerald-400 font-semibold">
-                      A password reset link has been sent to <strong>{resetEmail}</strong> via Firebase Auth.
+                      A password reset link has been sent to <strong>{resetEmail}</strong>.
                     </p>
                     <button
                       onClick={() => setShowResetModal(false)}

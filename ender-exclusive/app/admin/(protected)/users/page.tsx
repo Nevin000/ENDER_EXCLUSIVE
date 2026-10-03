@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
-import { db } from "@/firebase/config";
+import { auth, adminAuth, db, adminDb } from "@/firebase/config";
 import { motion, AnimatePresence } from "framer-motion";
 import AnimatedCounter from "@/components/admin/AnimatedCounter";
 import { getAllOrders, Order } from "@/services/orderService";
@@ -87,7 +87,8 @@ export default function AdminUsersPage() {
         setLoading(true);
 
         // Fetch users real-time
-        unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
+        const activeDb = adminAuth.currentUser ? adminDb : db;
+        unsubUsers = onSnapshot(collection(activeDb, "users"), (snap) => {
           setUsers(snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) })));
         });
 
@@ -459,8 +460,8 @@ export default function AdminUsersPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${activeTab === tab.id
-                  ? "bg-black text-white dark:bg-white dark:text-black shadow-lg"
-                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                ? "bg-black text-white dark:bg-white dark:text-black shadow-lg"
+                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                 }`}
             >
               {tab.label}

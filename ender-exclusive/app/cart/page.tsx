@@ -5,6 +5,8 @@ import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/firebase/config";
 
 import {
     HiOutlineShoppingBag,
@@ -14,7 +16,7 @@ import {
     HiCheck,
 } from "react-icons/hi2";
 import { FaTruck, FaShieldAlt, FaClock, FaFire, FaGift, FaTag } from "react-icons/fa";
-import { Flame, Sparkles, ShoppingBag, ArrowRight, Trash2 } from "lucide-react";
+import { Flame, Sparkles, ShoppingBag, ArrowRight, Trash2, AlertTriangle, AlertCircle } from "lucide-react";
 
 import { CartItem } from "@/types/cart";
 
@@ -30,6 +32,39 @@ export default function CartPage() {
 
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [invalidProductIds, setInvalidProductIds] = useState<Set<string>>(new Set());
+    const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+    // Live validation check for cart items against shop products
+    useEffect(() => {
+        async function validateCartWithShop() {
+            if (!cart || cart.length === 0) {
+                setInvalidProductIds(new Set());
+                return;
+            }
+
+            const invalidIds = new Set<string>();
+            const uniquePIds = Array.from(new Set(cart.map((item: CartItem) => item.productId)));
+
+            await Promise.all(
+                uniquePIds.map(async (pId) => {
+                    try {
+                        const pRef = doc(db, "products", pId);
+                        const pSnap = await getDoc(pRef);
+                        if (!pSnap.exists()) {
+                            invalidIds.add(pId);
+                        }
+                    } catch (err) {
+                        console.error("Error checking product in shop:", pId, err);
+                    }
+                })
+            );
+
+            setInvalidProductIds(invalidIds);
+        }
+
+        validateCartWithShop();
+    }, [cart]);
 
     // Auto-select all items when cart loads
     useEffect(() => {
@@ -136,6 +171,25 @@ export default function CartPage() {
     const isAllSelected = cart.length > 0 && selectedItems.size === cart.length;
     const hasSelected = selectedItems.size > 0;
     const hasDeliveryCharge = deliveryBreakdown.length > 0;
+
+    const invalidCartItems = useMemo(() => {
+        return cart.filter((item: CartItem) => invalidProductIds.has(item.productId));
+    }, [cart, invalidProductIds]);
+
+    const hasSelectedInvalidItems = useMemo(() => {
+        return selectedCartItems.some((item: CartItem) => invalidProductIds.has(item.productId));
+    }, [selectedCartItems, invalidProductIds]);
+
+    const handleRemoveAllInvalid = async () => {
+        if (invalidCartItems.length === 0) return;
+        if (confirm(`Remove ${invalidCartItems.length} unavailable item(s) from your cart?`)) {
+            const ids = invalidCartItems.map((item) => item.id);
+            for (const id of ids) {
+                await removeItem(id);
+            }
+            setCheckoutError(null);
+        }
+    };
 
     // Handle quantity with loading state
     const handleIncreaseQty = async (id: string) => {
@@ -250,6 +304,27 @@ export default function CartPage() {
                     </Link>
                 </div>
 
+                {/* Warning Banner for Deleted/Unavailable Products */}
+                {invalidCartItems.length > 0 && (
+                    <div className="bg-red-500/10 border-2 border-red-500/40 rounded-3xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2.5 text-red-600 dark:text-red-500 font-black text-sm uppercase tracking-wider">
+                                <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+                                <span>Unavailable Product Warning</span>
+                            </div>
+                            <p className="text-xs text-zinc-700 dark:text-zinc-300 font-semibold leading-relaxed">
+                                {invalidCartItems.length} product(s) in your cart are no longer available in our store catalog. Please remove them to proceed with your order.
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleRemoveAllInvalid}
+                            className="px-5 py-2.5 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider transition-all shadow-md shrink-0 cursor-pointer"
+                        >
+                            Remove All Unavailable ({invalidCartItems.length})
+                        </button>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-10">
 
                     {/* ===== LEFT: CART ITEMS (2/3) ===== */}
@@ -291,6 +366,7 @@ export default function CartPage() {
                             <AnimatePresence>
                                 {cart.map((item: CartItem) => {
                                     const isSelected = selectedItems.has(item.id);
+                                    const isInvalidInShop = invalidProductIds.has(item.productId);
                                     const price = item.isOnSale ? item.salePrice ?? item.price : item.price;
                                     const deliveryCharge = item.deliveryCharge ?? 0;
                                     const isFreeDelivery = deliveryCharge === 0;
@@ -307,9 +383,11 @@ export default function CartPage() {
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, scale: 0.95 }}
                                             transition={{ duration: 0.3 }}
-                                            className={`bg-zinc-50/80 dark:bg-[#111111] rounded-3xl border-2 transition-all duration-300 shadow-sm overflow-hidden ${isSelected
-                                                ? 'border-red-600 dark:border-red-500/80 shadow-red-500/10'
-                                                : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
+                                            className={`bg-zinc-50/80 dark:bg-[#111111] rounded-3xl border-2 transition-all duration-300 shadow-sm overflow-hidden ${isInvalidInShop
+                                                ? 'border-red-600 dark:border-red-500/80 bg-red-500/5 dark:bg-red-950/20 shadow-red-500/10'
+                                                : isSelected
+                                                    ? 'border-red-600 dark:border-red-500/80 shadow-red-500/10'
+                                                    : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
                                                 }`}
                                         >
                                             <div className="p-6 sm:p-7">
@@ -331,7 +409,7 @@ export default function CartPage() {
 
                                                     {/* Product Image */}
                                                     <Link
-                                                        href={item.isOnSale ? `/on-sale/${item.productId}` : `/shop/${item.productId}`}
+                                                        href={isInvalidInShop ? "#" : item.isOnSale ? `/on-sale/${item.productId}` : `/shop/${item.productId}`}
                                                         className="shrink-0 relative group"
                                                     >
                                                         <img
@@ -344,7 +422,7 @@ export default function CartPage() {
                                                     {/* Product Details */}
                                                     <div className="flex-1 min-w-0 space-y-3">
                                                         <Link
-                                                            href={item.isOnSale ? `/on-sale/${item.productId}` : `/shop/${item.productId}`}
+                                                            href={isInvalidInShop ? "#" : item.isOnSale ? `/on-sale/${item.productId}` : `/shop/${item.productId}`}
                                                         >
                                                             <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-white hover:text-red-600 dark:hover:text-red-500 transition line-clamp-2 leading-snug">
                                                                 {item.name}
@@ -357,23 +435,32 @@ export default function CartPage() {
                                                                 Color: {item.color} • Size: {item.size}
                                                             </span>
 
-                                                            {item.isOnSale && (
-                                                                <span className="text-[11px] font-black uppercase tracking-wider text-white bg-red-600 px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm">
-                                                                    <Flame className="w-3 h-3 fill-white" />
-                                                                    SALE
-                                                                </span>
-                                                            )}
-
-                                                            {isFreeDelivery ? (
-                                                                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3.5 py-1.5 rounded-full border border-emerald-500/20 flex items-center gap-1.5">
-                                                                    <FaTruck className="text-xs" />
-                                                                    FREE Delivery
+                                                            {isInvalidInShop ? (
+                                                                <span className="text-[11px] font-black uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-500/15 border border-red-500/30 px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
+                                                                    <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                                                                    No Longer Available in Shop
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3.5 py-1.5 rounded-full border border-amber-500/20 flex items-center gap-1.5">
-                                                                    <FaTruck className="text-xs" />
-                                                                    Delivery: Rs. {deliveryCharge}
-                                                                </span>
+                                                                <>
+                                                                    {item.isOnSale && (
+                                                                        <span className="text-[11px] font-black uppercase tracking-wider text-white bg-red-600 px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm">
+                                                                            <Flame className="w-3 h-3 fill-white" />
+                                                                            SALE
+                                                                        </span>
+                                                                    )}
+
+                                                                    {isFreeDelivery ? (
+                                                                        <span className="text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3.5 py-1.5 rounded-full border border-emerald-500/20 flex items-center gap-1.5">
+                                                                            <FaTruck className="text-xs" />
+                                                                            FREE Delivery
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3.5 py-1.5 rounded-full border border-amber-500/20 flex items-center gap-1.5">
+                                                                            <FaTruck className="text-xs" />
+                                                                            Delivery: Rs. {deliveryCharge}
+                                                                        </span>
+                                                                    )}
+                                                                </>
                                                             )}
                                                         </div>
 
@@ -425,7 +512,7 @@ export default function CartPage() {
 
                                                                 <button
                                                                     onClick={() => handleIncreaseQty(item.id)}
-                                                                    disabled={isUpdating || item.quantity >= item.stock}
+                                                                    disabled={isUpdating || item.quantity >= item.stock || isInvalidInShop}
                                                                     className="w-10 h-10 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center transition disabled:opacity-40 text-zinc-800 dark:text-zinc-200 cursor-pointer"
                                                                 >
                                                                     <HiOutlinePlus className="text-base" />
@@ -590,26 +677,40 @@ export default function CartPage() {
                                     </div>
 
                                     {/* PROCEED TO CHECKOUT BUTTON */}
-                                    <div className="pt-2">
+                                    <div className="pt-2 space-y-2">
                                         <button
                                             disabled={!hasSelected}
                                             onClick={() => {
                                                 if (!hasSelected) return;
+                                                if (hasSelectedInvalidItems) {
+                                                    const msg = "Your cart contains selected items that are no longer available in the shop. Please remove them to proceed.";
+                                                    setCheckoutError(msg);
+                                                    alert(msg);
+                                                    return;
+                                                }
+                                                setCheckoutError(null);
                                                 const ids = Array.from(selectedItems).join(",");
                                                 router.push(`/checkout?items=${ids}`);
                                             }}
                                             className={`
                                                 w-full py-4 sm:py-5 rounded-2xl text-center font-black text-white text-base sm:text-lg 
                                                 uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer shadow-xl
-                                                ${hasSelected
+                                                ${hasSelected && !hasSelectedInvalidItems
                                                     ? 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 shadow-red-600/30 hover:scale-[1.02] active:scale-[0.98]'
-                                                    : 'bg-zinc-300 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-500 cursor-not-allowed'
+                                                    : hasSelectedInvalidItems
+                                                        ? 'bg-red-600/80 hover:bg-red-600 shadow-red-600/20'
+                                                        : 'bg-zinc-300 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-500 cursor-not-allowed'
                                                 }
                                             `}
                                         >
                                             <ShoppingBag className="w-5 h-5" />
                                             <span>Proceed to Checkout</span>
                                         </button>
+                                        {checkoutError && (
+                                            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs font-bold text-red-500 text-center">
+                                                {checkoutError}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Secure Checkout Notice */}

@@ -81,7 +81,7 @@ export default function CheckoutPage() {
     const [paymentMethod, setPaymentMethod] = useState<"cod" | "bank" | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [agreeTerms, setAgreeTerms] = useState(false);
-    const [outOfStockItems, setOutOfStockItems] = useState<Array<{ id: string; productId: string; name: string; availableStock: number; requestedQty: number }>>([]);
+    const [outOfStockItems, setOutOfStockItems] = useState<Array<{ id: string; productId: string; name: string; availableStock: number; requestedQty: number; isDeleted?: boolean }>>([]);
     const [orderSuccessModal, setOrderSuccessModal] = useState<{ orderId: string; orderNo: string } | null>(null);
 
     const [formData, setFormData] = useState({
@@ -102,7 +102,7 @@ export default function CheckoutPage() {
     const [bankConfirmChecked, setBankConfirmChecked] = useState(false);
     const [bankDetails, setBankDetails] = useState(DEFAULT_BANK_DETAILS);
 
-    // Live stock verification check for checkout items
+    // Live stock & product availability verification check for checkout items
     useEffect(() => {
         async function checkLiveStock() {
             if (!checkoutItems || checkoutItems.length === 0) return;
@@ -112,7 +112,16 @@ export default function CheckoutPage() {
                 try {
                     const pRef = doc(db, "products", item.productId);
                     const pSnap = await getDoc(pRef);
-                    if (pSnap.exists()) {
+                    if (!pSnap.exists()) {
+                        oosList.push({
+                            id: item.id,
+                            productId: item.productId,
+                            name: item.name,
+                            availableStock: 0,
+                            requestedQty: item.quantity,
+                            isDeleted: true,
+                        });
+                    } else {
                         const liveStock = pSnap.data().stock ?? 0;
                         if (liveStock < item.quantity) {
                             oosList.push({
@@ -121,6 +130,7 @@ export default function CheckoutPage() {
                                 name: item.name,
                                 availableStock: liveStock,
                                 requestedQty: item.quantity,
+                                isDeleted: false,
                             });
                         }
                     }
@@ -259,6 +269,10 @@ export default function CheckoutPage() {
     };
 
     const validateStep1 = () => {
+        if (outOfStockItems.length > 0) {
+            alert("Some items in your checkout are unavailable or out of stock. Please remove them before proceeding.");
+            return false;
+        }
         if (!paymentMethod) {
             alert("Please select a payment method");
             return false;
@@ -275,6 +289,10 @@ export default function CheckoutPage() {
     };
 
     const validateStep2 = () => {
+        if (outOfStockItems.length > 0) {
+            alert("Some items in your checkout are unavailable or out of stock. Please remove them before proceeding.");
+            return false;
+        }
         const newErrors: Record<string, string> = {};
         if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
         if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
@@ -314,6 +332,11 @@ export default function CheckoutPage() {
         if (!checkoutItems || checkoutItems.length === 0) {
             alert("Your checkout cart is empty. Please select items from your cart.");
             router.push("/cart");
+            return;
+        }
+
+        if (outOfStockItems.length > 0) {
+            alert("Cannot place order: Some items in your checkout are no longer available in the shop. Please remove them to proceed.");
             return;
         }
 
@@ -430,7 +453,7 @@ export default function CheckoutPage() {
     return (
         <div className="min-h-screen bg-white dark:bg-[#070707] text-zinc-900 dark:text-white transition-colors duration-300 py-8 sm:py-12 lg:py-16 pb-28">
             <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-                
+
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800/80 pb-6">
                     <div className="flex items-center gap-3">
@@ -448,15 +471,15 @@ export default function CheckoutPage() {
                     </div>
                 </div>
 
-                {/* Out of Stock Alert Banner */}
+                {/* Out of Stock & Product Availability Alert Banner */}
                 {outOfStockItems.length > 0 && (
                     <div className="bg-red-500/10 border-2 border-red-500/40 rounded-3xl p-6 sm:p-8 space-y-4 shadow-lg">
                         <div className="flex items-center gap-2 text-red-600 dark:text-red-500 font-black text-sm uppercase tracking-wider">
                             <Flame className="w-5 h-5 fill-red-500 text-red-500" />
-                            <span>Stock Availability Notice</span>
+                            <span>Stock & Product Availability Notice</span>
                         </div>
                         <p className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 font-semibold leading-relaxed">
-                            The following product(s) in your checkout are currently out of stock or have insufficient inventory. Please remove them to complete your purchase:
+                            The following product(s) in your checkout are unavailable or no longer available in the shop catalog. Please remove them to complete your purchase:
                         </p>
                         <div className="space-y-3">
                             {outOfStockItems.map((oos) => (
@@ -464,9 +487,11 @@ export default function CheckoutPage() {
                                     <div className="space-y-0.5">
                                         <p className="font-black text-zinc-900 dark:text-white text-sm">"{oos.name}"</p>
                                         <p className="text-red-600 dark:text-red-500 font-bold">
-                                            {oos.availableStock === 0
-                                                ? "Currently Out of Stock (0 available)"
-                                                : `Only ${oos.availableStock} in stock (You requested ${oos.requestedQty})`}
+                                            {oos.isDeleted
+                                                ? "Product has been removed from the shop (No longer available)"
+                                                : oos.availableStock === 0
+                                                    ? "Currently Out of Stock (0 available)"
+                                                    : `Only ${oos.availableStock} in stock (You requested ${oos.requestedQty})`}
                                         </p>
                                     </div>
                                     <button
@@ -477,7 +502,7 @@ export default function CheckoutPage() {
                                         }}
                                         className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer"
                                     >
-                                        Remove Out-of-Stock Item
+                                        Remove Item
                                     </button>
                                 </div>
                             ))}
@@ -491,26 +516,23 @@ export default function CheckoutPage() {
                         {steps.map((step, index) => (
                             <div key={step.number} className="flex items-center">
                                 <div
-                                    className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-2xl border-2 font-black text-sm transition-all shadow-md ${
-                                        currentStep >= step.number
-                                            ? "border-red-600 bg-red-600 text-white shadow-red-600/30"
-                                            : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-[#181818] text-zinc-400"
-                                    }`}
+                                    className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-2xl border-2 font-black text-sm transition-all shadow-md ${currentStep >= step.number
+                                        ? "border-red-600 bg-red-600 text-white shadow-red-600/30"
+                                        : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-[#181818] text-zinc-400"
+                                        }`}
                                 >
                                     {currentStep > step.number ? <FaCheck className="text-sm" /> : step.number}
                                 </div>
                                 <span
-                                    className={`hidden md:block ml-3 text-xs sm:text-sm font-black uppercase tracking-wider ${
-                                        currentStep >= step.number ? "text-zinc-900 dark:text-white" : "text-zinc-400"
-                                    }`}
+                                    className={`hidden md:block ml-3 text-xs sm:text-sm font-black uppercase tracking-wider ${currentStep >= step.number ? "text-zinc-900 dark:text-white" : "text-zinc-400"
+                                        }`}
                                 >
                                     {step.label}
                                 </span>
                                 {index < steps.length - 1 && (
                                     <div
-                                        className={`w-8 sm:w-16 h-1 mx-2 sm:mx-4 rounded-full transition-all ${
-                                            currentStep > step.number ? "bg-red-600" : "bg-zinc-200 dark:bg-zinc-800"
-                                        }`}
+                                        className={`w-8 sm:w-16 h-1 mx-2 sm:mx-4 rounded-full transition-all ${currentStep > step.number ? "bg-red-600" : "bg-zinc-200 dark:bg-zinc-800"
+                                            }`}
                                     />
                                 )}
                             </div>
@@ -520,13 +542,13 @@ export default function CheckoutPage() {
 
                 {/* Main Content Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-10">
-                    
+
                     {/* LEFT: Step Forms (2/3) */}
                     <div className="lg:col-span-2">
                         <div className="bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-10 shadow-sm space-y-6">
-                            
+
                             <AnimatePresence mode="wait">
-                                
+
                                 {/* ===== STEP 1: PAYMENT METHOD ===== */}
                                 {currentStep === 1 && (
                                     <motion.div
@@ -549,7 +571,7 @@ export default function CheckoutPage() {
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                                            
+
                                             {/* COD Option */}
                                             <button
                                                 type="button"
@@ -557,19 +579,17 @@ export default function CheckoutPage() {
                                                     setPaymentMethod("cod");
                                                     setBankConfirmChecked(false);
                                                 }}
-                                                className={`p-6 rounded-3xl border-2 text-left transition-all cursor-pointer ${
-                                                    paymentMethod === "cod"
-                                                        ? "border-red-600 bg-red-500/10 dark:bg-red-950/30 shadow-xl shadow-red-500/10"
-                                                        : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#141414] hover:border-zinc-300 dark:hover:border-zinc-700"
-                                                }`}
+                                                className={`p-6 rounded-3xl border-2 text-left transition-all cursor-pointer ${paymentMethod === "cod"
+                                                    ? "border-red-600 bg-red-500/10 dark:bg-red-950/30 shadow-xl shadow-red-500/10"
+                                                    : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#141414] hover:border-zinc-300 dark:hover:border-zinc-700"
+                                                    }`}
                                             >
                                                 <div className="flex items-start gap-4">
                                                     <div
-                                                        className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center shrink-0 mt-0.5 transition ${
-                                                            paymentMethod === "cod"
-                                                                ? "border-red-600 bg-red-600 text-white"
-                                                                : "border-zinc-300 dark:border-zinc-700"
-                                                        }`}
+                                                        className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center shrink-0 mt-0.5 transition ${paymentMethod === "cod"
+                                                            ? "border-red-600 bg-red-600 text-white"
+                                                            : "border-zinc-300 dark:border-zinc-700"
+                                                            }`}
                                                     >
                                                         {paymentMethod === "cod" && (
                                                             <HiOutlineCheckCircle className="text-white text-base" />
@@ -604,19 +624,17 @@ export default function CheckoutPage() {
                                                     setPaymentMethod("bank");
                                                     setBankConfirmChecked(false);
                                                 }}
-                                                className={`p-6 rounded-3xl border-2 text-left transition-all cursor-pointer ${
-                                                    paymentMethod === "bank"
-                                                        ? "border-red-600 bg-red-500/10 dark:bg-red-950/30 shadow-xl shadow-red-500/10"
-                                                        : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#141414] hover:border-zinc-300 dark:hover:border-zinc-700"
-                                                }`}
+                                                className={`p-6 rounded-3xl border-2 text-left transition-all cursor-pointer ${paymentMethod === "bank"
+                                                    ? "border-red-600 bg-red-500/10 dark:bg-red-950/30 shadow-xl shadow-red-500/10"
+                                                    : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#141414] hover:border-zinc-300 dark:hover:border-zinc-700"
+                                                    }`}
                                             >
                                                 <div className="flex items-start gap-4">
                                                     <div
-                                                        className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center shrink-0 mt-0.5 transition ${
-                                                            paymentMethod === "bank"
-                                                                ? "border-red-600 bg-red-600 text-white"
-                                                                : "border-zinc-300 dark:border-zinc-700"
-                                                        }`}
+                                                        className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center shrink-0 mt-0.5 transition ${paymentMethod === "bank"
+                                                            ? "border-red-600 bg-red-600 text-white"
+                                                            : "border-zinc-300 dark:border-zinc-700"
+                                                            }`}
                                                     >
                                                         {paymentMethod === "bank" && (
                                                             <HiOutlineCheckCircle className="text-white text-base" />
@@ -653,7 +671,7 @@ export default function CheckoutPage() {
                                                     className="overflow-hidden"
                                                 >
                                                     <div className="bg-amber-500/10 rounded-3xl p-6 sm:p-8 border border-amber-500/30 space-y-6">
-                                                        
+
                                                         <div className="flex items-center gap-2.5 text-amber-500">
                                                             <HiOutlineOfficeBuilding className="text-2xl" />
                                                             <h4 className="font-black uppercase tracking-wider text-sm">
@@ -779,7 +797,7 @@ export default function CheckoutPage() {
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                            
+
                                             {/* First Name */}
                                             <div>
                                                 <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
@@ -790,9 +808,8 @@ export default function CheckoutPage() {
                                                     name="firstName"
                                                     value={formData.firstName}
                                                     onChange={handleInputChange}
-                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${
-                                                        errors.firstName ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
-                                                    } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
+                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${errors.firstName ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
+                                                        } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
                                                     placeholder="First Name"
                                                 />
                                                 {errors.firstName && (
@@ -810,9 +827,8 @@ export default function CheckoutPage() {
                                                     name="lastName"
                                                     value={formData.lastName}
                                                     onChange={handleInputChange}
-                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${
-                                                        errors.lastName ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
-                                                    } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
+                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${errors.lastName ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
+                                                        } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
                                                     placeholder="Last Name"
                                                 />
                                                 {errors.lastName && (
@@ -830,9 +846,8 @@ export default function CheckoutPage() {
                                                     name="email"
                                                     value={formData.email}
                                                     onChange={handleInputChange}
-                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${
-                                                        errors.email ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
-                                                    } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
+                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${errors.email ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
+                                                        } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
                                                     placeholder="your.email@example.com"
                                                 />
                                                 {errors.email && (
@@ -850,9 +865,8 @@ export default function CheckoutPage() {
                                                     name="phone"
                                                     value={formData.phone}
                                                     onChange={handleInputChange}
-                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${
-                                                        errors.phone ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
-                                                    } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
+                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${errors.phone ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
+                                                        } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
                                                     placeholder="07X XXX XXXX"
                                                 />
                                                 {errors.phone && (
@@ -870,9 +884,8 @@ export default function CheckoutPage() {
                                                     name="address"
                                                     value={formData.address}
                                                     onChange={handleInputChange}
-                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${
-                                                        errors.address ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
-                                                    } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
+                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${errors.address ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
+                                                        } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
                                                     placeholder="House / Street / Lane details"
                                                 />
                                                 {errors.address && (
@@ -890,9 +903,8 @@ export default function CheckoutPage() {
                                                     name="city"
                                                     value={formData.city}
                                                     onChange={handleInputChange}
-                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${
-                                                        errors.city ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
-                                                    } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
+                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${errors.city ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
+                                                        } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
                                                     placeholder="City"
                                                 />
                                                 {errors.city && (
@@ -909,9 +921,8 @@ export default function CheckoutPage() {
                                                     name="district"
                                                     value={formData.district}
                                                     onChange={handleInputChange}
-                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${
-                                                        errors.district ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
-                                                    } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
+                                                    className={`w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-[#181818] border ${errors.district ? "border-red-500" : "border-zinc-300 dark:border-zinc-700"
+                                                        } focus:ring-2 focus:ring-red-500 outline-none text-sm font-semibold transition`}
                                                 >
                                                     <option value="">Select District</option>
                                                     {SRI_LANKA_DISTRICTS.map((district) => (
@@ -1067,11 +1078,10 @@ export default function CheckoutPage() {
                                 <button
                                     onClick={prevStep}
                                     disabled={currentStep === 1}
-                                    className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition ${
-                                        currentStep > 1
-                                            ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white hover:bg-zinc-300 dark:hover:bg-zinc-700 cursor-pointer"
-                                            : "opacity-40 cursor-not-allowed text-zinc-400"
-                                    }`}
+                                    className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition ${currentStep > 1
+                                        ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white hover:bg-zinc-300 dark:hover:bg-zinc-700 cursor-pointer"
+                                        : "opacity-40 cursor-not-allowed text-zinc-400"
+                                        }`}
                                 >
                                     ← Back
                                 </button>
@@ -1088,11 +1098,10 @@ export default function CheckoutPage() {
                                     <button
                                         onClick={handleSubmit}
                                         disabled={loading}
-                                        className={`px-10 py-4 rounded-2xl text-white text-xs font-black uppercase tracking-widest transition-all duration-300 shadow-xl flex items-center gap-2 cursor-pointer ${
-                                            loading
-                                                ? "bg-zinc-500 cursor-not-allowed"
-                                                : "bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 shadow-red-600/30 hover:scale-105"
-                                        }`}
+                                        className={`px-10 py-4 rounded-2xl text-white text-xs font-black uppercase tracking-widest transition-all duration-300 shadow-xl flex items-center gap-2 cursor-pointer ${loading
+                                            ? "bg-zinc-500 cursor-not-allowed"
+                                            : "bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 shadow-red-600/30 hover:scale-105"
+                                            }`}
                                     >
                                         <ShoppingBag className="w-4 h-4" />
                                         <span>Place Order Now</span>
@@ -1106,7 +1115,7 @@ export default function CheckoutPage() {
                     {/* RIGHT: Order Summary Sticky Panel (1/3) */}
                     <div className="lg:col-span-1">
                         <div className="sticky top-28 bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-3xl p-7 sm:p-8 space-y-6 shadow-xl">
-                            
+
                             <div className="border-b border-zinc-200 dark:border-zinc-800/80 pb-4 flex items-center justify-between">
                                 <h2 className="text-2xl font-black uppercase tracking-tight">Order Summary</h2>
                                 <span className="text-xs font-black text-red-500 uppercase tracking-wider">

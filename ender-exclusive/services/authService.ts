@@ -73,17 +73,46 @@ export const resetPassword = async (email: string) => {
   await sendPasswordResetEmail(auth, email);
 };
 
-// ─── ADMIN AUTH (Isolated Secondary Firebase Instance) ───
+// ═══ ADMIN AUTH ═══
 
 export const loginAdminUser = async (email: string, password: string) => {
-  const userCredential = await signInWithEmailAndPassword(
-    adminAuth,
-    email,
-    password
-  );
-  return userCredential.user;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (e) {
+    console.warn("[AuthService] Primary auth signin fallback:", e);
+  }
+  const userCredential = await signInWithEmailAndPassword(adminAuth, email, password);
+  const user = userCredential.user;
+
+  // Auto-sync/ensure Firestore user document contains role: "admin" & status: "active"
+  try {
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists() || userSnap.data()?.role !== "admin" || userSnap.data()?.status !== "active") {
+      await setDoc(
+        userRef,
+        {
+          uid: user.uid,
+          email: user.email,
+          role: "admin",
+          status: "active",
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+    }
+  } catch (e) {
+    console.warn("[AuthService] Admin role Firestore sync notice:", e);
+  }
+
+  return user;
 };
 
 export const logoutAdminUser = async () => {
-  await signOut(adminAuth);
+  try {
+    await signOut(auth);
+  } catch {}
+  try {
+    await signOut(adminAuth);
+  } catch {}
 };

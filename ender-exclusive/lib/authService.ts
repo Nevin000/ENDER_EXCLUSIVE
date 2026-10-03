@@ -100,13 +100,11 @@ export async function fetchUserRecord(uid: string): Promise<UserRecord | null> {
 export function getCustomerLoginError(error: ValidationError, role?: UserRole): string {
   switch (error) {
     case "WRONG_ROLE":
-      // ⚠️ Security: Do NOT reveal that this is an admin account.
-      // Return a generic invalid credentials message to prevent role enumeration.
+      // ⚠️ Security Best Practice: Return generic message to prevent role enumeration attacks
       return "Invalid email or password. Please try again.";
     case "ACCOUNT_SUSPENDED":
       return "Your account has been suspended. Please contact support.";
     case "USER_NOT_FOUND":
-      // ⚠️ Security: Do NOT reveal whether the account exists or not.
       return "Invalid email or password. Please try again.";
     case "FIRESTORE_ERROR":
       return "Unable to verify account. Please try again.";

@@ -13,7 +13,7 @@ import {
   Timestamp,
   writeBatch,
 } from "firebase/firestore";
-import { db } from "@/firebase/config";
+import { auth, adminAuth, db, adminDb } from "@/firebase/config";
 import { Product } from "@/types/product";
 import AnimatedCounter from "@/components/admin/AnimatedCounter";
 import jsPDF from "jspdf";
@@ -84,8 +84,9 @@ export default function ProductsPage() {
   // ⚡ Realtime Firestore Subscription
   useEffect(() => {
     setLoading(true);
+    const activeDb = adminAuth.currentUser ? adminDb : db;
     const unsub = onSnapshot(
-      collection(db, "products"),
+      collection(activeDb, "products"),
       (snapshot) => {
         const list = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -833,8 +834,8 @@ export default function ProductsPage() {
                     <tr
                       key={product.id}
                       className={`transition-colors ${isSelected
-                          ? "bg-amber-50/40 dark:bg-amber-950/20"
-                          : "hover:bg-zinc-50/80 dark:hover:bg-[#161618]"
+                        ? "bg-amber-50/40 dark:bg-amber-950/20"
+                        : "hover:bg-zinc-50/80 dark:hover:bg-[#161618]"
                         }`}
                     >
                       {/* Checkbox */}
@@ -925,10 +926,10 @@ export default function ProductsPage() {
                       <td className="px-6 py-5 font-mono text-sm md:text-base font-medium">
                         <span
                           className={`inline-flex items-center px-4 py-2 rounded-full text-xs md:text-sm font-semibold uppercase border ${isOutOfStock
-                              ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800"
-                              : isLowStock
-                                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800"
-                                : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800"
+                            ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800"
+                            : isLowStock
+                              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800"
+                              : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800"
                             }`}
                         >
                           {isOutOfStock ? "Out of Stock (0)" : isLowStock ? `Low Stock (${stockNum})` : `In Stock (${stockNum})`}
@@ -940,8 +941,8 @@ export default function ProductsPage() {
                         <button
                           onClick={() => handleTogglePublishStatus(product)}
                           className={`px-4 py-2 rounded-full text-xs md:text-sm font-semibold uppercase border transition-all cursor-pointer ${product.status === "active"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800 hover:bg-emerald-100"
-                              : "bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 hover:bg-zinc-200"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800 hover:bg-emerald-100"
+                            : "bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 hover:bg-zinc-200"
                             }`}
                           title="Click to toggle status"
                         >

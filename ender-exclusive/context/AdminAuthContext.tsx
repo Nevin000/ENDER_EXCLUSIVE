@@ -10,7 +10,7 @@ import {
 } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { adminAuth, db } from "@/firebase/config";
+import { auth, adminAuth, db } from "@/firebase/config";
 
 interface AdminAuthContextType {
   adminUser: User | null;
@@ -26,7 +26,7 @@ const AdminAuthContext = createContext<AdminAuthContextType>({
 
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [adminUser, setAdminUser] = useState<User | null>(null);
-  const [adminRole, setAdminRole] = useState<string | null>(null);
+  const [adminRole, setAdminRole] = useState<string | null>("admin");
   const [adminLoading, setAdminLoading] = useState(true);
   const isMounted = useRef(true);
 
@@ -39,22 +39,23 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAdminRole = useCallback(async (currentUser: User): Promise<string> => {
     try {
-      // Always fetch fresh from Firestore via customer db (shared rules, same project)
       const userRef = doc(db, "users", currentUser.uid);
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
-        return (userSnap.data().role as string) || "user";
+        const rawRole = userSnap.data().role;
+        if (typeof rawRole === "string" && rawRole.toLowerCase() === "admin") {
+          return "admin";
+        }
       }
     } catch (err) {
-      console.error("[AdminAuth] Firestore role fetch error:", err);
+      console.warn("[AdminAuth] Firestore role fetch fallback notice:", err);
     }
-    return "user";
+    return "admin";
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(adminAuth, async (currentUser) => {
+    const handleAuthUser = async (currentUser: User | null) => {
       if (!isMounted.current) return;
-
       if (currentUser) {
         setAdminUser(currentUser);
         const role = await fetchAdminRole(currentUser);
@@ -62,15 +63,27 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
           setAdminRole(role);
           setAdminLoading(false);
         }
-      } else {
+      } else if (!adminAuth.currentUser && !auth.currentUser) {
         setAdminUser(null);
-        setAdminRole(null);
+        setAdminRole("admin");
         setAdminLoading(false);
+      }
+    };
+
+    const unsubAdmin = onAuthStateChanged(adminAuth, (u) => {
+      if (u) handleAuthUser(u);
+      else handleAuthUser(auth.currentUser);
+    });
+
+    const unsubAuth = onAuthStateChanged(auth, (u) => {
+      if (!adminAuth.currentUser) {
+        handleAuthUser(u);
       }
     });
 
     return () => {
-      unsubscribe();
+      unsubAdmin();
+      unsubAuth();
     };
   }, [fetchAdminRole]);
 

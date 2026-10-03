@@ -64,11 +64,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!isMounted.current) return;
 
-      setUser(currentUser);
-
       if (currentUser) {
-        await loadRecord(currentUser);
+        const userRecord = await fetchUserRecord(currentUser.uid);
+        if (isMounted.current) {
+          // 🛑 Customer Portal Isolation: Admin accounts must not populate customer session
+          if (userRecord && userRecord.role === "admin") {
+            setUser(null);
+            setRecord(null);
+            setLoading(false);
+            return;
+          }
+          setUser(currentUser);
+          setRecord(userRecord);
+        }
       } else {
+        setUser(null);
         setRecord(null);
       }
 

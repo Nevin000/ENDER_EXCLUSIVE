@@ -11,15 +11,17 @@ import {
   orderBy,
   Timestamp,
 } from "firebase/firestore";
-import { db } from "@/firebase/config";
+import { auth, adminAuth, db, adminDb } from "@/firebase/config";
 import { LookBookCollection } from "@/types/lookbook";
+
+const getFirestoreDb = () => (adminAuth.currentUser ? adminDb : db);
 
 const COLLECTION_NAME = "lookbook_collections";
 
 export const createLookbookCollection = async (
   data: Omit<LookBookCollection, "id">
 ): Promise<string> => {
-  const docRef = await addDoc(collection(db, COLLECTION_NAME), {
+  const docRef = await addDoc(collection(getFirestoreDb(), COLLECTION_NAME), {
     ...data,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
@@ -33,7 +35,7 @@ export const getLookbookCollections = async (options?: {
   season?: string;
 }): Promise<LookBookCollection[]> => {
   try {
-    const collRef = collection(db, COLLECTION_NAME);
+    const collRef = collection(getFirestoreDb(), COLLECTION_NAME);
     let q = query(collRef, orderBy("createdAt", "desc"));
 
     if (options?.status) {
@@ -70,7 +72,7 @@ export const getLookbookCollectionBySlug = async (
 ): Promise<LookBookCollection | null> => {
   try {
     const q = query(
-      collection(db, COLLECTION_NAME),
+      collection(getFirestoreDb(), COLLECTION_NAME),
       where("slug", "==", slug)
     );
     const snapshot = await getDocs(q);
@@ -90,7 +92,7 @@ export const getLookbookCollectionById = async (
   id: string
 ): Promise<LookBookCollection | null> => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, id);
+    const docRef = doc(getFirestoreDb(), COLLECTION_NAME, id);
     const snapshot = await getDoc(docRef);
     if (!snapshot.exists()) return null;
     return {
@@ -107,7 +109,7 @@ export const updateLookbookCollection = async (
   id: string,
   data: Partial<LookBookCollection>
 ): Promise<void> => {
-  const docRef = doc(db, COLLECTION_NAME, id);
+  const docRef = doc(getFirestoreDb(), COLLECTION_NAME, id);
   await updateDoc(docRef, {
     ...data,
     updatedAt: Timestamp.now(),
@@ -115,6 +117,6 @@ export const updateLookbookCollection = async (
 };
 
 export const deleteLookbookCollection = async (id: string): Promise<void> => {
-  const docRef = doc(db, COLLECTION_NAME, id);
+  const docRef = doc(getFirestoreDb(), COLLECTION_NAME, id);
   await deleteDoc(docRef);
 };

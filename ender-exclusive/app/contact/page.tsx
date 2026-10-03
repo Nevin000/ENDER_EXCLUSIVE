@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Phone, MapPin, Send, CheckCircle2, Clock, Sparkles } from "lucide-react";
+import { Mail, Phone, MapPin, Send, CheckCircle2, Clock, Sparkles, AlertCircle } from "lucide-react";
 import { FaWhatsapp, FaInstagram, FaFacebookF, FaTiktok } from "react-icons/fa";
+import { sendContactMessage } from "@/services/contactService";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -16,35 +17,53 @@ export default function ContactPage() {
 
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.email && formData.message) {
+    setErrorMessage(null);
+
+    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
+      setErrorMessage("Please fill out all required fields (*).");
+      return;
+    }
+
+    try {
       setLoading(true);
-      setTimeout(() => {
-        setLoading(false);
-        setSubmitted(true);
-        setFormData({
-          name: "",
-          email: "",
-          phone: "",
-          subject: "General Inquiry",
-          message: "",
-        });
-      }, 800);
+      await sendContactMessage({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        subject: formData.subject,
+        message: formData.message,
+      });
+
+      setSubmitted(true);
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        subject: "General Inquiry",
+        message: "",
+      });
+    } catch (err: any) {
+      console.error("Error submitting contact message:", err);
+      setErrorMessage(err.message || "Failed to send message. Please check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <main className="bg-white dark:bg-[#070707] text-zinc-900 dark:text-white min-h-screen transition-colors duration-300">
-      
+
       {/* ===== 1. HERO SECTION (Premium Gray Theme) ===== */}
       <section className="relative bg-zinc-100 dark:bg-[#121212] text-zinc-900 dark:text-white py-16 sm:py-24 border-b border-zinc-200 dark:border-zinc-800/80 overflow-hidden">
         {/* Subtle Ambient Accent */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          
+
           {/* Small Badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -91,10 +110,10 @@ export default function ContactPage() {
       {/* ===== 2. MAIN CONTENT SECTION ===== */}
       <section className="py-16 sm:py-24">
         <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           {/* Top 3 Info Cards Grid */}
           <div className="grid sm:grid-cols-3 gap-6 mb-16">
-            
+
             {/* EMAIL CARD */}
             <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 shadow-lg hover:border-amber-500/50 transition">
               <div className="p-3.5 rounded-2xl bg-amber-500/10 text-amber-500 w-fit mb-5">
@@ -143,7 +162,7 @@ export default function ContactPage() {
 
           {/* Form & Map 2-Column Section */}
           <div className="grid lg:grid-cols-2 gap-12 items-start">
-            
+
             {/* LEFT: WORKING INTERACTIVE CONTACT FORM */}
             <div className="p-8 sm:p-12 rounded-3xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 shadow-xl">
               <div className="mb-8">
@@ -171,7 +190,14 @@ export default function ContactPage() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  
+
+                  {errorMessage && (
+                    <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-bold flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{errorMessage}</span>
+                    </div>
+                  )}
+
                   {/* Name Input */}
                   <div>
                     <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
@@ -269,12 +295,12 @@ export default function ContactPage() {
               )}
             </div>
 
-            {/* RIGHT: INTERACTIVE GOOGLE MAP EMBED & WAREHOUSE LOCATION */}
+            {/* RIGHT: GOOGLE MAPS + WAREHOUSE LOCATION */}
             <div className="space-y-6">
-              <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden">
+              <div className="p-8 sm:p-10 rounded-3xl bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 shadow-xl">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="text-2xl font-black uppercase">Ender Warehouse Location</h3>
+                    <h3 className="text-2xl font-black uppercase tracking-tight">Ender Warehouse HQ</h3>
                     <p className="text-xs text-zinc-500 mt-1 font-semibold">Dehiwala, Sri Lanka</p>
                   </div>
                   <span className="px-3.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-mono font-bold">
@@ -282,23 +308,50 @@ export default function ContactPage() {
                   </span>
                 </div>
 
-                {/* Google Map Embed centered on Attidiya, Dehiwala, Sri Lanka */}
-                <div className="relative w-full h-[380px] rounded-2xl overflow-hidden border border-zinc-300 dark:border-zinc-700 shadow-md">
+                {/* ✅ FREE GOOGLE MAPS — No API Key Required */}
+                <div className="relative w-full h-[400px] rounded-2xl overflow-hidden border border-zinc-300 dark:border-zinc-700 shadow-md bg-zinc-100 dark:bg-zinc-900">
                   <iframe
-                    title="Ender Warehouse Location"
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15844.757833075253!2d79.8755675!3d6.8450123!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae25a58e65ef5e9%3A0x6b44a0e1c2d0f52b!2sAttidiya%2C%20Dehiwala-Mount%20Lavinia!5e0!3m2!1sen!2slk!4v1700000000000!5m2!1sen!2slk"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen={false}
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3961.494343503267!2d79.8858256744823!3d6.831175519512473!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae25b00688fcb05%3A0x27e6d509841ed0e1!2sENDER%20warehouse!5e0!3m2!1sen!2slk!4v1791040253458!5m2!1sen!2slk"
+                    className="w-full h-full border-0"
+                    allowFullScreen
                     loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
+                    referrerPolicy="strict-origin-when-cross-origin"
+                  ></iframe>
                 </div>
 
-                <div className="mt-6 p-4 rounded-2xl bg-white dark:bg-[#18181B] border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400 font-semibold space-y-1">
-                  <p>📍 <strong>Address:</strong> Ender Warehouse, 26/20, Gemunu Road, Attidiya, Dehiwala, 10350, Sri Lanka</p>
-                  <p>⏰ <strong>Warehouse Hours:</strong> Monday – Saturday: 9:00 AM – 6:00 PM</p>
+                {/* Address + Hours */}
+                <div className="mt-6 space-y-4">
+                  <div className="p-5 rounded-2xl bg-white dark:bg-[#18181B] border border-zinc-200 dark:border-zinc-800 space-y-2">
+                    <div className="flex items-center gap-2.5 text-amber-500 font-black text-xs uppercase tracking-wider">
+                      <MapPin className="w-4 h-4 shrink-0" />
+                      <span>Warehouse Address</span>
+                    </div>
+                    <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 leading-relaxed pl-6">
+                      Ender Warehouse, 26/20, Gemunu Road, Attidiya, Dehiwala, 10350, Sri Lanka
+                    </p>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-white dark:bg-[#18181B] border border-zinc-200 dark:border-zinc-800 space-y-2">
+                    <div className="flex items-center gap-2.5 text-amber-500 font-black text-xs uppercase tracking-wider">
+                      <Clock className="w-4 h-4 shrink-0" />
+                      <span>Operating & Support Hours</span>
+                    </div>
+                    <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 leading-relaxed pl-6 space-y-1">
+                      <p>Monday – Saturday: 9:00 AM – 6:00 PM</p>
+                      <p className="text-xs text-zinc-500 font-medium">Online customer support operates 24/7</p>
+                    </div>
+                  </div>
+
+                  {/* Open in Google Maps Button */}
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=26%2F20%2C+Gemunu+Road%2C+Attidiya%2C+Dehiwala%2C+Sri+Lanka"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-3.5 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase tracking-wider rounded-2xl transition duration-200 cursor-pointer shadow-md hover:scale-[1.01] active:scale-95"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    <span>Open in Google Maps</span>
+                  </a>
                 </div>
               </div>
             </div>

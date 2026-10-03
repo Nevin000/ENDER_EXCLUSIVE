@@ -9,11 +9,13 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
-import { db } from "@/firebase/config";
+import { auth, adminAuth, db, adminDb } from "@/firebase/config";
 import { Product } from "@/types/product";
 
+const getFirestoreDb = () => (adminAuth.currentUser ? adminDb : db);
+
 export const createProduct = async (productData: any) => {
-  return await addDoc(collection(db, "products"), {
+  return await addDoc(collection(getFirestoreDb(), "products"), {
     ...productData,
 
     createdAt: Timestamp.now(),
@@ -21,7 +23,7 @@ export const createProduct = async (productData: any) => {
 };
 
 export const getProducts = async (): Promise<Product[]> => {
-  const snapshot = await getDocs(collection(db, "products"));
+  const snapshot = await getDocs(collection(getFirestoreDb(), "products"));
 
   return snapshot.docs.map((doc) => ({
     id: doc.id,
@@ -30,14 +32,14 @@ export const getProducts = async (): Promise<Product[]> => {
 };
 
 export const deleteProduct = async (productId: string) => {
-  await deleteDoc(doc(db, "products", productId));
+  await deleteDoc(doc(getFirestoreDb(), "products", productId));
 };
 
 export const getProductById = async (
   productId: string
 ): Promise<Product | null> => {
   const productRef = doc(
-    db,
+    getFirestoreDb(),
     "products",
     productId
   );
@@ -55,6 +57,6 @@ export const getProductById = async (
 };
 
 export const updateProduct = async (productId: string, productData: any) => {
-  await updateDoc(doc(db, "products", productId), productData);
+  await updateDoc(doc(getFirestoreDb(), "products", productId), productData);
 };
 
